@@ -52,7 +52,12 @@ class ArtBoardPainter extends CustomPainter {
     canvas.drawRect(rect, Paint()..color = const Color(0xFFFFFFFF));
     for (final canvasObject
         in canvasObjects.values.where((element) => element is! UserCursor)) {
-      if (canvasObject is CanvasRectangle) {
+      if (canvasObject is CanvasCircle) {
+        final position = canvasObject.position;
+        final radius = canvasObject.radius;
+        canvas.drawCircle(
+            position, radius, Paint()..color = canvasObject.color);
+      } else if (canvasObject is CanvasRectangle) {
         final position = canvasObject.position;
         final bottomRight = canvasObject.bottomRight;
         canvas.drawRect(
@@ -118,9 +123,12 @@ abstract class CanvasObject {
   final Color color;
 
   factory CanvasObject.fromJson(Map<String, dynamic> json) {
-    if (json['object_type'] == UserCursor.type) {
+    final objectType = json['object_type'];
+    if (objectType == UserCursor.type) {
       return UserCursor.fromJson(json);
-    } else if (json['object_type'] == CanvasRectangle.type) {
+    } else if (objectType == CanvasCircle.type) {
+      return CanvasCircle.fromJson(json);
+    } else if (objectType == CanvasRectangle.type) {
       return CanvasRectangle.fromJson(json);
     } else {
       throw UnimplementedError('Unknown type ${json['object_type']}');
@@ -167,6 +175,50 @@ class UserCursor extends CanvasObject {
         'y': position.dy,
       }
     };
+  }
+}
+
+class CanvasCircle extends CanvasObject {
+  static String type = 'circle';
+
+  final double radius;
+
+  CanvasCircle({
+    required this.radius,
+    required super.position,
+    required super.color,
+  });
+
+  CanvasCircle.fromJson(Map<String, dynamic> json)
+      : radius = json['radius'],
+        super(
+          position: Offset(json['position']['x'], json['position']['y']),
+          color: Color(json['color']),
+        );
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'object_type': type,
+      'color': color.value,
+      'position': {
+        'x': position.dx,
+        'y': position.dy,
+      },
+      'radius': radius,
+    };
+  }
+
+  CanvasCircle copyWith({
+    double? radius,
+    Offset? position,
+    Color? color,
+  }) {
+    return CanvasCircle(
+      radius: radius ?? this.radius,
+      position: position ?? this.position,
+      color: color ?? this.color,
+    );
   }
 }
 
@@ -278,6 +330,12 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
               GestureDetector(
                 onPanDown: (details) {
                   if (_currentMode == DrawMode.oval) {
+                    setState(() {
+                      _currentlyDrawingObject = CanvasCircle(
+                          radius: 0,
+                          position: details.globalPosition,
+                          color: RandomColor.getRandom());
+                    });
                   } else if (_currentMode == DrawMode.rectangle) {
                     setState(() {
                       _currentlyDrawingObject = CanvasRectangle(
@@ -290,6 +348,29 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
                 },
                 onPanUpdate: (details) {
                   if (_currentMode == DrawMode.oval) {
+                    setState(() {
+                      _currentlyDrawingObject =
+                          (_currentlyDrawingObject as CanvasCircle).copyWith(
+                        radius: Offset(
+                          details.globalPosition.dx -
+                              _currentlyDrawingObject!.position.dx,
+                          details.globalPosition.dy -
+                              _currentlyDrawingObject!.position.dy,
+                        ).distance,
+                      );
+                    });
+                    final myCursor = UserCursor(
+                      position: details.globalPosition,
+                      color: _myColor,
+                    );
+
+                    _cursorChannel.sendBroadcastMessage(
+                      event: 'cursor',
+                      payload: {
+                        'cursor': myCursor.toJson(),
+                        'object': _currentlyDrawingObject!.toJson(),
+                      },
+                    );
                   } else if (_currentMode == DrawMode.rectangle) {
                     setState(() {
                       _currentlyDrawingObject =
@@ -312,22 +393,20 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
                   }
                 },
                 onPanEnd: (details) {
-                  if (_currentMode == DrawMode.oval) {
-                  } else if (_currentMode == DrawMode.rectangle) {
-                    final myCursor = UserCursor(
-                      position: (_currentlyDrawingObject as CanvasRectangle)
-                          .bottomRight,
-                      color: _myColor,
-                    );
+                  final myCursor = UserCursor(
+                    position: (_currentlyDrawingObject as CanvasRectangle)
+                        .bottomRight,
+                    color: _myColor,
+                  );
 
-                    _cursorChannel.sendBroadcastMessage(
-                      event: 'cursor',
-                      payload: {
-                        'cursor': myCursor.toJson(),
-                        'object': _currentlyDrawingObject!.toJson(),
-                      },
-                    );
-                  }
+                  _cursorChannel.sendBroadcastMessage(
+                    event: 'cursor',
+                    payload: {
+                      'cursor': myCursor.toJson(),
+                      'object': _currentlyDrawingObject!.toJson(),
+                    },
+                  );
+
                   setState(() {
                     _currentlyDrawingObject = null;
                   });
