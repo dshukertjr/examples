@@ -67,18 +67,6 @@ class ArtBoardPainter extends CustomPainter {
       }
     }
 
-    final currentObject = currentlyDrawingObject;
-    if (currentObject != null) {
-      if (currentObject is CanvasRectangle) {
-        final position = currentObject.position;
-        final bottomRight = currentObject.bottomRight;
-        canvas.drawRect(
-            Rect.fromLTRB(
-                position.dx, position.dy, bottomRight.dx, bottomRight.dy),
-            Paint()..color = currentObject.color);
-      }
-    }
-
     for (final canvasObject in canvasObjects.values.whereType<UserCursor>()) {
       final position = canvasObject.position;
       canvas.drawPath(
@@ -220,6 +208,12 @@ class CanvasCircle extends CanvasObject {
       color: color ?? this.color,
     );
   }
+
+  bool intersectsWith(Offset point) {
+    final circleCenter = position;
+    final centerToPointerDistance = (point - circleCenter).distance;
+    return radius > centerToPointerDistance;
+  }
 }
 
 class CanvasRectangle extends CanvasObject {
@@ -270,6 +264,17 @@ class CanvasRectangle extends CanvasObject {
       bottomRight: bottomRight ?? this.bottomRight,
     );
   }
+
+  bool intersectsWith(Offset point) {
+    final minX = min(position.dx, bottomRight.dx);
+    final maxX = max(position.dx, bottomRight.dx);
+    final minY = min(position.dy, bottomRight.dy);
+    final maxY = max(position.dy, bottomRight.dy);
+    return minX < point.dx &&
+        point.dx < maxX &&
+        minY < point.dy &&
+        point.dy < maxY;
+  }
 }
 
 class _ArtBoardPageState extends State<ArtBoardPage> {
@@ -282,6 +287,8 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
   DrawMode _currentMode = DrawMode.pointer;
 
   CanvasObject? _currentlyDrawingObject;
+
+  Offset _cursorPosition = const Offset(0, 0);
 
   @override
   void initState() {
@@ -329,7 +336,27 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
             children: [
               GestureDetector(
                 onPanDown: (details) {
-                  if (_currentMode == DrawMode.oval) {
+                  if (_currentMode == DrawMode.pointer) {
+                    final nonCursorObjects = _canvasObjects.values
+                        .where((element) => element is! UserCursor)
+                        .toList();
+                    for (final canvasObject in nonCursorObjects.reversed) {
+                      if (canvasObject is CanvasCircle) {
+                        if (canvasObject
+                            .intersectsWith(details.globalPosition)) {
+                          _currentlyDrawingObject = canvasObject;
+                          break;
+                        }
+                      } else if (canvasObject is CanvasRectangle) {
+                        if (canvasObject
+                            .intersectsWith(details.globalPosition)) {
+                          _currentlyDrawingObject = canvasObject;
+                          break;
+                        }
+                      }
+                      setState(() {});
+                    }
+                  } else if (_currentMode == DrawMode.oval) {
                     setState(() {
                       _currentlyDrawingObject = CanvasCircle(
                           radius: 0,
@@ -345,18 +372,51 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
                       );
                     });
                   }
+                  _cursorPosition = details.globalPosition;
                 },
                 onPanUpdate: (details) {
-                  if (_currentMode == DrawMode.oval) {
+                  if (_currentMode == DrawMode.pointer) {
+                    if (_currentlyDrawingObject is CanvasCircle) {
+                      _currentlyDrawingObject =
+                          (_currentlyDrawingObject as CanvasCircle).copyWith(
+                              position:
+                                  (_currentlyDrawingObject as CanvasCircle)
+                                          .position +
+                                      details.delta);
+                    } else if (_currentlyDrawingObject is CanvasRectangle) {
+                      _currentlyDrawingObject =
+                          (_currentlyDrawingObject as CanvasRectangle).copyWith(
+                        position: (_currentlyDrawingObject as CanvasRectangle)
+                                .position +
+                            details.delta,
+                        bottomRight:
+                            (_currentlyDrawingObject as CanvasRectangle)
+                                    .bottomRight +
+                                details.delta,
+                      );
+                    }
+                    if (_currentlyDrawingObject != null) {
+                      setState(() {});
+                      final myCursor = UserCursor(
+                        position: details.globalPosition,
+                        color: _myColor,
+                      );
+
+                      _cursorChannel.sendBroadcastMessage(
+                        event: 'cursor',
+                        payload: {
+                          'cursor': myCursor.toJson(),
+                          'object': _currentlyDrawingObject!.toJson(),
+                        },
+                      );
+                    }
+                  } else if (_currentMode == DrawMode.oval) {
                     setState(() {
                       _currentlyDrawingObject =
                           (_currentlyDrawingObject as CanvasCircle).copyWith(
-                        radius: Offset(
-                          details.globalPosition.dx -
-                              _currentlyDrawingObject!.position.dx,
-                          details.globalPosition.dy -
-                              _currentlyDrawingObject!.position.dy,
-                        ).distance,
+                        radius: (details.globalPosition -
+                                _currentlyDrawingObject!.position)
+                            .distance,
                       );
                     });
                     final myCursor = UserCursor(
@@ -391,21 +451,22 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
                       },
                     );
                   }
+                  _cursorPosition = details.globalPosition;
                 },
                 onPanEnd: (details) {
-                  final myCursor = UserCursor(
-                    position: (_currentlyDrawingObject as CanvasRectangle)
-                        .bottomRight,
-                    color: _myColor,
-                  );
-
-                  _cursorChannel.sendBroadcastMessage(
-                    event: 'cursor',
-                    payload: {
-                      'cursor': myCursor.toJson(),
-                      'object': _currentlyDrawingObject!.toJson(),
-                    },
-                  );
+                  if (_currentlyDrawingObject != null) {
+                    final myCursor = UserCursor(
+                      position: _cursorPosition,
+                      color: _myColor,
+                    );
+                    _cursorChannel.sendBroadcastMessage(
+                      event: 'cursor',
+                      payload: {
+                        'cursor': myCursor.toJson(),
+                        'object': _currentlyDrawingObject!.toJson(),
+                      },
+                    );
+                  }
 
                   setState(() {
                     _currentlyDrawingObject = null;
