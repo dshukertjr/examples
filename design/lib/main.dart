@@ -115,6 +115,7 @@ extension RandomColor on Color {
 
 abstract class CanvasObject {
   final Offset position;
+  final Color color;
 
   factory CanvasObject.fromJson(Map<String, dynamic> json) {
     if (json['object_type'] == UserCursor.type) {
@@ -126,7 +127,10 @@ abstract class CanvasObject {
     }
   }
 
-  CanvasObject({required this.position});
+  CanvasObject({
+    required this.position,
+    required this.color,
+  });
 
   Map<String, dynamic> toJson() {
     if (this is UserCursor) {
@@ -142,16 +146,16 @@ abstract class CanvasObject {
 
 class UserCursor extends CanvasObject {
   static String type = 'cursor';
-  final Color color;
 
   UserCursor({
     required super.position,
-    required this.color,
+    required super.color,
   });
 
   UserCursor.fromJson(Map<String, dynamic> json)
-      : color = Color(json['color']),
-        super(position: Offset(json['position']['x'], json['position']['y']));
+      : super(
+            position: Offset(json['position']['x'], json['position']['y']),
+            color: Color(json['color']));
 
   @override
   Map<String, dynamic> toJson() {
@@ -167,24 +171,25 @@ class UserCursor extends CanvasObject {
 }
 
 class CanvasRectangle extends CanvasObject {
-  static String type = 'cursor';
+  static String type = 'rectangle';
 
-  final Color color;
   final Offset bottomRight;
 
   CanvasRectangle({
     required super.position,
-    required this.color,
+    required super.color,
     required this.bottomRight,
   });
 
   CanvasRectangle.fromJson(Map<String, dynamic> json)
-      : color = Color(json['color']),
-        bottomRight = Offset(
+      : bottomRight = Offset(
           json['bottom_right']['x'],
           json['bottom_right']['y'],
         ),
-        super(position: Offset(json['position']['x'], json['position']['y']));
+        super(
+          position: Offset(json['position']['x'], json['position']['y']),
+          color: Color(json['color']),
+        );
 
   @override
   Map<String, dynamic> toJson() {
@@ -220,7 +225,7 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
 
   late final RealtimeChannel _cursorChannel;
 
-  late final int _myColorCode;
+  late final Color _myColor;
 
   DrawMode _currentMode = DrawMode.pointer;
 
@@ -230,16 +235,23 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
   void initState() {
     super.initState();
 
-    _myColorCode = RandomColor.getRandom().value;
+    _myColor = RandomColor.getRandom();
+
     _cursorChannel = supabase
-        .channel('cursor')
+        .channel('cursor', opts: const RealtimeChannelConfig(self: true))
         .onBroadcast(
             event: 'cursor',
             callback: (payload) {
-              setState(() {
-                _canvasObjects[payload['color']] =
-                    CanvasObject.fromJson(payload);
-              });
+              final cursor = UserCursor.fromJson(payload['cursor']);
+              if (cursor.color != _myColor) {
+                _canvasObjects[cursor.color.value] = cursor;
+              }
+
+              if (payload['object'] != null) {
+                final object = CanvasObject.fromJson(payload['object']);
+                _canvasObjects[object.color.value] = object;
+              }
+              setState(() {});
             })
         .subscribe();
   }
@@ -252,18 +264,19 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
         final maxHeight = constraints.maxHeight;
         return MouseRegion(
           onHover: (event) {
-            final myCursor = UserCursor(
-                position: event.position, color: Color(_myColorCode));
+            final myCursor =
+                UserCursor(position: event.position, color: _myColor);
             _cursorChannel.sendBroadcastMessage(
               event: 'cursor',
-              payload: myCursor.toJson(),
+              payload: {
+                'cursor': myCursor.toJson(),
+              },
             );
           },
           child: Stack(
             children: [
               GestureDetector(
                 onPanDown: (details) {
-                  print('pan down');
                   if (_currentMode == DrawMode.oval) {
                   } else if (_currentMode == DrawMode.rectangle) {
                     setState(() {
@@ -276,8 +289,6 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
                   }
                 },
                 onPanUpdate: (details) {
-                  print('pan update');
-
                   if (_currentMode == DrawMode.oval) {
                   } else if (_currentMode == DrawMode.rectangle) {
                     setState(() {
@@ -286,20 +297,40 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
                         bottomRight: details.globalPosition,
                       );
                     });
+                    final myCursor = UserCursor(
+                      position: details.globalPosition,
+                      color: _myColor,
+                    );
+
+                    _cursorChannel.sendBroadcastMessage(
+                      event: 'cursor',
+                      payload: {
+                        'cursor': myCursor.toJson(),
+                        'object': _currentlyDrawingObject!.toJson(),
+                      },
+                    );
                   }
                 },
                 onPanEnd: (details) {
                   if (_currentMode == DrawMode.oval) {
                   } else if (_currentMode == DrawMode.rectangle) {
+                    final myCursor = UserCursor(
+                      position: (_currentlyDrawingObject as CanvasRectangle)
+                          .bottomRight,
+                      color: _myColor,
+                    );
+
                     _cursorChannel.sendBroadcastMessage(
                       event: 'cursor',
-                      payload: _currentlyDrawingObject!.toJson(),
+                      payload: {
+                        'cursor': myCursor.toJson(),
+                        'object': _currentlyDrawingObject!.toJson(),
+                      },
                     );
-                    print(_currentlyDrawingObject!.toJson());
-                    setState(() {
-                      _currentlyDrawingObject = null;
-                    });
                   }
+                  setState(() {
+                    _currentlyDrawingObject = null;
+                  });
                 },
                 child: CustomPaint(
                   size: Size(maxWidth, maxHeight),
@@ -310,44 +341,45 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
                 ),
               ),
               Positioned(
-                  top: 0,
-                  left: 0,
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _currentMode = DrawMode.pointer;
-                          });
-                        },
-                        icon: const Icon(FeatherIcons.mousePointer),
-                        color: _currentMode == DrawMode.pointer
-                            ? Colors.green
-                            : null,
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _currentMode = DrawMode.oval;
-                          });
-                        },
-                        icon: const Icon(Icons.circle_outlined),
-                        color:
-                            _currentMode == DrawMode.oval ? Colors.green : null,
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _currentMode = DrawMode.rectangle;
-                          });
-                        },
-                        icon: const Icon(Icons.rectangle_outlined),
-                        color: _currentMode == DrawMode.rectangle
-                            ? Colors.green
-                            : null,
-                      ),
-                    ],
-                  )),
+                top: 0,
+                left: 0,
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _currentMode = DrawMode.pointer;
+                        });
+                      },
+                      icon: const Icon(FeatherIcons.mousePointer),
+                      color: _currentMode == DrawMode.pointer
+                          ? Colors.green
+                          : null,
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _currentMode = DrawMode.oval;
+                        });
+                      },
+                      icon: const Icon(Icons.circle_outlined),
+                      color:
+                          _currentMode == DrawMode.oval ? Colors.green : null,
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _currentMode = DrawMode.rectangle;
+                        });
+                      },
+                      icon: const Icon(Icons.rectangle_outlined),
+                      color: _currentMode == DrawMode.rectangle
+                          ? Colors.green
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         );
