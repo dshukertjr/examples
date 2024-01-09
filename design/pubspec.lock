@@ -65,6 +65,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.1"
+  feather_icons:
+    dependency: "direct main"
+    description:
+      name: feather_icons
+      sha256: "9fe1e52305fc363c3ee08cabaef32526e2e8ce53091c7b70f9c774460a1f03ae"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.0"
   ffi:
     dependency: transitive
     description:
