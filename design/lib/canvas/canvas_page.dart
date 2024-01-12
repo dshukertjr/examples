@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+const String channelName = 'canvas';
+const String broadcastEventName = 'canvas';
+
 /// Different input modes users can perform
 enum _DrawMode {
   /// Mode to move around existing objects
@@ -47,9 +50,9 @@ class _CanvasPageState extends State<CanvasPage> {
     _myId = const Uuid().v4();
 
     _cursorChannel = supabase
-        .channel('cursor', opts: const RealtimeChannelConfig(self: true))
+        .channel(channelName, opts: const RealtimeChannelConfig(self: true))
         .onBroadcast(
-            event: 'cursor',
+            event: broadcastEventName,
             callback: (payload) {
               final cursor = UserCursor.fromJson(payload['cursor']);
               if (cursor.id != _myId) {
@@ -78,7 +81,7 @@ class _CanvasPageState extends State<CanvasPage> {
               position: event.position,
             );
             _cursorChannel.sendBroadcastMessage(
-              event: 'cursor',
+              event: broadcastEventName,
               payload: {
                 'cursor': myCursor.toJson(),
               },
@@ -157,7 +160,7 @@ class _CanvasPageState extends State<CanvasPage> {
                       );
 
                       _cursorChannel.sendBroadcastMessage(
-                        event: 'cursor',
+                        event: broadcastEventName,
                         payload: {
                           'cursor': myCursor.toJson(),
                           'object': _currentlyDrawingObject!.toJson(),
@@ -180,7 +183,7 @@ class _CanvasPageState extends State<CanvasPage> {
                     );
 
                     _cursorChannel.sendBroadcastMessage(
-                      event: 'cursor',
+                      event: broadcastEventName,
                       payload: {
                         'cursor': myCursor.toJson(),
                         'object': _currentlyDrawingObject!.toJson(),
@@ -199,7 +202,7 @@ class _CanvasPageState extends State<CanvasPage> {
                     );
 
                     _cursorChannel.sendBroadcastMessage(
-                      event: 'cursor',
+                      event: broadcastEventName,
                       payload: {
                         'cursor': myCursor.toJson(),
                         'object': _currentlyDrawingObject!.toJson(),
@@ -215,7 +218,7 @@ class _CanvasPageState extends State<CanvasPage> {
                       id: _myId,
                     );
                     _cursorChannel.sendBroadcastMessage(
-                      event: 'cursor',
+                      event: broadcastEventName,
                       payload: {
                         'cursor': myCursor.toJson(),
                         'object': _currentlyDrawingObject!.toJson(),
@@ -242,6 +245,7 @@ class _CanvasPageState extends State<CanvasPage> {
                 child: Row(
                   children: [
                     IconButton(
+                      iconSize: 48,
                       onPressed: () {
                         setState(() {
                           _currentMode = _DrawMode.pointer;
@@ -253,6 +257,7 @@ class _CanvasPageState extends State<CanvasPage> {
                           : null,
                     ),
                     IconButton(
+                      iconSize: 48,
                       onPressed: () {
                         setState(() {
                           _currentMode = _DrawMode.oval;
@@ -263,6 +268,7 @@ class _CanvasPageState extends State<CanvasPage> {
                           _currentMode == _DrawMode.oval ? Colors.green : null,
                     ),
                     IconButton(
+                      iconSize: 48,
                       onPressed: () {
                         setState(() {
                           _currentMode = _DrawMode.rectangle;
