@@ -4,6 +4,7 @@ import 'package:design/main.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 /// Different input modes users can perform
 enum _DrawMode {
@@ -26,11 +27,12 @@ class CanvasPage extends StatefulWidget {
 }
 
 class _CanvasPageState extends State<CanvasPage> {
-  final Map<int, SyncedObject> _canvasObjects = {};
+  final Map<String, UserCursor> _userCursors = {};
+  final Map<String, CanvasObject> _canvasObjects = {};
 
   late final RealtimeChannel _cursorChannel;
 
-  late final Color _myColor;
+  late final String _myId;
 
   _DrawMode _currentMode = _DrawMode.pointer;
 
@@ -42,7 +44,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void initState() {
     super.initState();
 
-    _myColor = RandomColor.getRandom();
+    _myId = const Uuid().v4();
 
     _cursorChannel = supabase
         .channel('cursor', opts: const RealtimeChannelConfig(self: true))
@@ -50,13 +52,13 @@ class _CanvasPageState extends State<CanvasPage> {
             event: 'cursor',
             callback: (payload) {
               final cursor = UserCursor.fromJson(payload['cursor']);
-              if (cursor.color != _myColor) {
-                _canvasObjects[cursor.color.value] = cursor;
+              if (cursor.id != _myId) {
+                _userCursors[cursor.id] = cursor;
               }
 
               if (payload['object'] != null) {
-                final object = SyncedObject.fromJson(payload['object']);
-                _canvasObjects[object.color.value] = object;
+                final object = CanvasObject.fromJson(payload['object']);
+                _canvasObjects[object.id] = object;
               }
               setState(() {});
             })
@@ -71,8 +73,10 @@ class _CanvasPageState extends State<CanvasPage> {
         final maxHeight = constraints.maxHeight;
         return MouseRegion(
           onHover: (event) {
-            final myCursor =
-                UserCursor(position: event.position, color: _myColor);
+            final myCursor = UserCursor(
+              id: _myId,
+              position: event.position,
+            );
             _cursorChannel.sendBroadcastMessage(
               event: 'cursor',
               payload: {
@@ -107,14 +111,17 @@ class _CanvasPageState extends State<CanvasPage> {
                   } else if (_currentMode == _DrawMode.oval) {
                     setState(() {
                       _currentlyDrawingObject = CanvasCircle(
-                          radius: 0,
-                          position: details.globalPosition,
-                          color: RandomColor.getRandom());
+                        id: const Uuid().v4(),
+                        color: RandomColor.getRandom(),
+                        radius: 0,
+                        center: details.globalPosition,
+                      );
                     });
                   } else if (_currentMode == _DrawMode.rectangle) {
                     setState(() {
                       _currentlyDrawingObject = CanvasRectangle(
-                        position: details.globalPosition,
+                        id: const Uuid().v4(),
+                        topLeft: details.globalPosition,
                         color: RandomColor.getRandom(),
                         bottomRight: details.globalPosition,
                       );
@@ -127,15 +134,14 @@ class _CanvasPageState extends State<CanvasPage> {
                     if (_currentlyDrawingObject is CanvasCircle) {
                       _currentlyDrawingObject =
                           (_currentlyDrawingObject as CanvasCircle).copyWith(
-                              position:
-                                  (_currentlyDrawingObject as CanvasCircle)
-                                          .position +
-                                      details.delta);
+                              center: (_currentlyDrawingObject as CanvasCircle)
+                                      .center +
+                                  details.delta);
                     } else if (_currentlyDrawingObject is CanvasRectangle) {
                       _currentlyDrawingObject =
                           (_currentlyDrawingObject as CanvasRectangle).copyWith(
-                        position: (_currentlyDrawingObject as CanvasRectangle)
-                                .position +
+                        topLeft: (_currentlyDrawingObject as CanvasRectangle)
+                                .topLeft +
                             details.delta,
                         bottomRight:
                             (_currentlyDrawingObject as CanvasRectangle)
@@ -147,7 +153,7 @@ class _CanvasPageState extends State<CanvasPage> {
                       setState(() {});
                       final myCursor = UserCursor(
                         position: details.globalPosition,
-                        color: _myColor,
+                        id: _myId,
                       );
 
                       _cursorChannel.sendBroadcastMessage(
@@ -163,13 +169,14 @@ class _CanvasPageState extends State<CanvasPage> {
                       _currentlyDrawingObject =
                           (_currentlyDrawingObject as CanvasCircle).copyWith(
                         radius: (details.globalPosition -
-                                _currentlyDrawingObject!.position)
+                                (_currentlyDrawingObject as CanvasCircle)
+                                    .center)
                             .distance,
                       );
                     });
                     final myCursor = UserCursor(
                       position: details.globalPosition,
-                      color: _myColor,
+                      id: _myId,
                     );
 
                     _cursorChannel.sendBroadcastMessage(
@@ -188,7 +195,7 @@ class _CanvasPageState extends State<CanvasPage> {
                     });
                     final myCursor = UserCursor(
                       position: details.globalPosition,
-                      color: _myColor,
+                      id: _myId,
                     );
 
                     _cursorChannel.sendBroadcastMessage(
@@ -205,7 +212,7 @@ class _CanvasPageState extends State<CanvasPage> {
                   if (_currentlyDrawingObject != null) {
                     final myCursor = UserCursor(
                       position: _cursorPosition,
-                      color: _myColor,
+                      id: _myId,
                     );
                     _cursorChannel.sendBroadcastMessage(
                       event: 'cursor',
@@ -223,6 +230,7 @@ class _CanvasPageState extends State<CanvasPage> {
                 child: CustomPaint(
                   size: Size(maxWidth, maxHeight),
                   painter: CanvasPainter(
+                    userCursors: _userCursors,
                     canvasObjects: _canvasObjects,
                     currentlyDrawingObject: _currentlyDrawingObject,
                   ),

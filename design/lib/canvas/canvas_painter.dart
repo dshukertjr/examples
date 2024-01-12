@@ -2,12 +2,13 @@ import 'package:design/canvas/canvas_object.dart';
 import 'package:flutter/material.dart';
 
 class CanvasPainter extends CustomPainter {
-  // Map<int, Offset> _otherUsers = {};
-  final Map<int, SyncedObject> canvasObjects;
+  final Map<String, UserCursor> userCursors;
+  final Map<String, CanvasObject> canvasObjects;
 
   final SyncedObject? currentlyDrawingObject;
 
   CanvasPainter({
+    required this.userCursors,
     required this.canvasObjects,
     required this.currentlyDrawingObject,
   });
@@ -19,12 +20,12 @@ class CanvasPainter extends CustomPainter {
     for (final canvasObject
         in canvasObjects.values.where((element) => element is! UserCursor)) {
       if (canvasObject is CanvasCircle) {
-        final position = canvasObject.position;
+        final position = canvasObject.center;
         final radius = canvasObject.radius;
         canvas.drawCircle(
             position, radius, Paint()..color = canvasObject.color);
       } else if (canvasObject is CanvasRectangle) {
-        final position = canvasObject.position;
+        final position = canvasObject.topLeft;
         final bottomRight = canvasObject.bottomRight;
         canvas.drawRect(
             Rect.fromLTRB(
@@ -33,8 +34,8 @@ class CanvasPainter extends CustomPainter {
       }
     }
 
-    for (final canvasObject in canvasObjects.values.whereType<UserCursor>()) {
-      final position = canvasObject.position;
+    for (final userCursor in userCursors.values) {
+      final position = userCursor.position;
       canvas.drawPath(
           Path()
             ..moveTo(position.dx, position.dy)
@@ -42,7 +43,7 @@ class CanvasPainter extends CustomPainter {
             ..lineTo(position.dx + 10.175, position.dy + 12.965)
             ..lineTo(position.dx + 19.925, position.dy + 12.255)
             ..lineTo(position.dx, position.dy),
-          Paint()..color = canvasObject.color);
+          Paint()..color = userCursor.color);
     }
   }
 
