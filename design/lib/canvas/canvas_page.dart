@@ -1,5 +1,5 @@
-import 'package:design/canvas/art_board_painter.dart';
 import 'package:design/canvas/canvas_object.dart';
+import 'package:design/canvas/canvas_painter.dart';
 import 'package:design/main.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
@@ -18,15 +18,15 @@ enum _DrawMode {
 }
 
 /// Interactive art board page to draw and collaborate with other users.
-class ArtBoardPage extends StatefulWidget {
-  const ArtBoardPage({super.key});
+class CanvasPage extends StatefulWidget {
+  const CanvasPage({super.key});
 
   @override
-  State<ArtBoardPage> createState() => _ArtBoardPageState();
+  State<CanvasPage> createState() => _CanvasPageState();
 }
 
-class _ArtBoardPageState extends State<ArtBoardPage> {
-  final Map<int, CanvasObject> _canvasObjects = {};
+class _CanvasPageState extends State<CanvasPage> {
+  final Map<int, SyncedObject> _canvasObjects = {};
 
   late final RealtimeChannel _cursorChannel;
 
@@ -34,7 +34,7 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
 
   _DrawMode _currentMode = _DrawMode.pointer;
 
-  CanvasObject? _currentlyDrawingObject;
+  SyncedObject? _currentlyDrawingObject;
 
   Offset _cursorPosition = const Offset(0, 0);
 
@@ -55,7 +55,7 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
               }
 
               if (payload['object'] != null) {
-                final object = CanvasObject.fromJson(payload['object']);
+                final object = SyncedObject.fromJson(payload['object']);
                 _canvasObjects[object.color.value] = object;
               }
               setState(() {});
@@ -222,7 +222,7 @@ class _ArtBoardPageState extends State<ArtBoardPage> {
                 },
                 child: CustomPaint(
                   size: Size(maxWidth, maxHeight),
-                  painter: ArtBoardPainter(
+                  painter: CanvasPainter(
                     canvasObjects: _canvasObjects,
                     currentlyDrawingObject: _currentlyDrawingObject,
                   ),

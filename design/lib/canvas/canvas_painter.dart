@@ -1,13 +1,13 @@
 import 'package:design/canvas/canvas_object.dart';
 import 'package:flutter/material.dart';
 
-class ArtBoardPainter extends CustomPainter {
+class CanvasPainter extends CustomPainter {
   // Map<int, Offset> _otherUsers = {};
-  final Map<int, CanvasObject> canvasObjects;
+  final Map<int, SyncedObject> canvasObjects;
 
-  final CanvasObject? currentlyDrawingObject;
+  final SyncedObject? currentlyDrawingObject;
 
-  ArtBoardPainter({
+  CanvasPainter({
     required this.canvasObjects,
     required this.currentlyDrawingObject,
   });
@@ -47,7 +47,7 @@ class ArtBoardPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ArtBoardPainter painter) {
+  bool shouldRepaint(CanvasPainter painter) {
     return true;
   }
 }
