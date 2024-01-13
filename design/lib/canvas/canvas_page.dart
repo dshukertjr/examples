@@ -15,7 +15,7 @@ enum _DrawMode {
   /// Mode to draw rectangles
   rectangle,
 
-  /// Mode to draw ovals
+  /// Mode to draw circles
   circle,
 }
 
@@ -179,12 +179,14 @@ class _CanvasPageState extends State<CanvasPage> {
       body: LayoutBuilder(builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
         final maxHeight = constraints.maxHeight;
+
         return MouseRegion(
           onHover: (event) {
             _syncCanvasObject(event.position);
           },
           child: Stack(
             children: [
+              // The main canvas
               GestureDetector(
                 onPanDown: _onPanDown,
                 onPanUpdate: _onPanUpdate,
@@ -198,6 +200,8 @@ class _CanvasPageState extends State<CanvasPage> {
                   ),
                 ),
               ),
+
+              // Buttons to change the current mode.
               Positioned(
                 top: 0,
                 left: 0,
