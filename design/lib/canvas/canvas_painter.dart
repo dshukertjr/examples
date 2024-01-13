@@ -39,9 +39,9 @@ class CanvasPainter extends CustomPainter {
       canvas.drawPath(
           Path()
             ..moveTo(position.dx, position.dy)
-            ..lineTo(position.dx + 7.145, position.dy + 22.42)
-            ..lineTo(position.dx + 10.175, position.dy + 12.965)
-            ..lineTo(position.dx + 19.925, position.dy + 12.255)
+            ..lineTo(position.dx + 14.29, position.dy + 44.84)
+            ..lineTo(position.dx + 20.35, position.dy + 25.93)
+            ..lineTo(position.dx + 39.85, position.dy + 24.51)
             ..lineTo(position.dx, position.dy),
           Paint()..color = userCursor.color);
     }
