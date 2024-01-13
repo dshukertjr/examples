@@ -4,11 +4,13 @@ import 'dart:ui';
 
 import 'package:uuid/uuid.dart';
 
+/// Handy extension method to create random colors
 extension RandomColor on Color {
   static Color getRandom() {
     return Color((Random().nextDouble() * 0xFFFFFF).toInt()).withOpacity(1.0);
   }
 
+  /// Quick and dirty method to create a random color from the userID
   static Color getRandomFromId(String id) {
     final seed = utf8.encode(id).reduce((value, element) => value + element);
     return Color((Random(seed).nextDouble() * 0xFFFFFF).toInt())
@@ -39,6 +41,7 @@ abstract class SyncedObject {
   Map<String, dynamic> toJson();
 }
 
+/// Data model for the cursors displayed on the canvas.
 class UserCursor extends SyncedObject {
   static String type = 'cursor';
 
@@ -68,6 +71,7 @@ class UserCursor extends SyncedObject {
   }
 }
 
+/// Base model for any design objects displayed on the canvas.
 abstract class CanvasObject extends SyncedObject {
   final Color color;
 
@@ -95,6 +99,7 @@ abstract class CanvasObject extends SyncedObject {
   CanvasObject move(Offset delta);
 }
 
+/// Circle displayed on the canvas.
 class CanvasCircle extends CanvasObject {
   static String type = 'circle';
 
@@ -158,6 +163,7 @@ class CanvasCircle extends CanvasObject {
   }
 }
 
+/// Rectangle displayed on the canvas.
 class CanvasRectangle extends CanvasObject {
   static String type = 'rectangle';
 

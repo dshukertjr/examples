@@ -16,8 +16,7 @@ class CanvasPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Draw each canvas objects
-    for (final canvasObject
-        in canvasObjects.values.where((element) => element is! UserCursor)) {
+    for (final canvasObject in canvasObjects.values) {
       if (canvasObject is CanvasCircle) {
         final position = canvasObject.center;
         final radius = canvasObject.radius;
