@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:uuid/uuid.dart';
+
 extension RandomColor on Color {
   static Color getRandom() {
     return Color((Random().nextDouble() * 0xFFFFFF).toInt()).withOpacity(1.0);
@@ -88,6 +90,9 @@ abstract class CanvasObject extends SyncedObject {
   bool intersectsWith(Offset point);
 
   CanvasObject copyWith();
+
+  /// Moves the object to a new position
+  CanvasObject move(Offset delta);
 }
 
 class CanvasCircle extends CanvasObject {
@@ -107,6 +112,11 @@ class CanvasCircle extends CanvasObject {
       : radius = json['radius'],
         center = Offset(json['center']['x'], json['center']['y']),
         super(id: json['id'], color: Color(json['color']));
+
+  /// Constructor to be used when first starting to draw the object on the canvas
+  CanvasCircle.createNew(this.center)
+      : radius = 0,
+        super(id: const Uuid().v4(), color: RandomColor.getRandom());
 
   @override
   Map<String, dynamic> toJson() {
@@ -141,6 +151,11 @@ class CanvasCircle extends CanvasObject {
     final centerToPointerDistance = (point - center).distance;
     return radius > centerToPointerDistance;
   }
+
+  @override
+  CanvasCircle move(Offset delta) {
+    return copyWith(center: center + delta);
+  }
 }
 
 class CanvasRectangle extends CanvasObject {
@@ -161,6 +176,12 @@ class CanvasRectangle extends CanvasObject {
             Offset(json['bottom_right']['x'], json['bottom_right']['y']),
         topLeft = Offset(json['top_left']['x'], json['top_left']['y']),
         super(id: json['id'], color: Color(json['color']));
+
+  /// Constructor to be used when first starting to draw the object on the canvas
+  CanvasRectangle.createNew(Offset startingPoint)
+      : topLeft = startingPoint,
+        bottomRight = startingPoint,
+        super(color: RandomColor.getRandom(), id: const Uuid().v4());
 
   @override
   Map<String, dynamic> toJson() {
@@ -203,5 +224,13 @@ class CanvasRectangle extends CanvasObject {
         point.dx < maxX &&
         minY < point.dy &&
         point.dy < maxY;
+  }
+
+  @override
+  CanvasRectangle move(Offset delta) {
+    return copyWith(
+      topLeft: topLeft + delta,
+      bottomRight: bottomRight + delta,
+    );
   }
 }

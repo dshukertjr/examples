@@ -15,8 +15,7 @@ class CanvasPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Rect rect = Offset.zero & size;
-    canvas.drawRect(rect, Paint()..color = const Color(0xFFFFFFFF));
+    // Draw each canvas objects
     for (final canvasObject
         in canvasObjects.values.where((element) => element is! UserCursor)) {
       if (canvasObject is CanvasCircle) {
@@ -34,6 +33,7 @@ class CanvasPainter extends CustomPainter {
       }
     }
 
+    // Draw the cursors
     for (final userCursor in userCursors.values) {
       final position = userCursor.position;
       canvas.drawPath(
@@ -48,7 +48,5 @@ class CanvasPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CanvasPainter painter) {
-    return true;
-  }
+  bool shouldRepaint(oldPainter) => true;
 }
