@@ -44,7 +44,7 @@ class _CanvasPageState extends State<CanvasPage> {
   _DrawMode _currentMode = _DrawMode.pointer;
 
   /// A single Canvas object that is being drawn by the user if any.
-  CanvasObject? _currentlyDrawingObject;
+  String? _currentlyDrawingObjectId;
 
   /// Cursor position of the user.
   Offset _cursorPosition = const Offset(0, 0);
@@ -60,8 +60,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
     // Start listening to broadcast messages to display other users' cursors and objects.
     _cursorChannel = supabase
-        .channel(Constants.channelName,
-            opts: const RealtimeChannelConfig(self: true))
+        .channel(Constants.channelName)
         .onBroadcast(
             event: Constants.broadcastEventName,
             callback: (payload) {
@@ -90,7 +89,8 @@ class _CanvasPageState extends State<CanvasPage> {
       event: Constants.broadcastEventName,
       payload: {
         'cursor': myCursor.toJson(),
-        'object': _currentlyDrawingObject?.toJson(),
+        if (_currentlyDrawingObjectId != null)
+          'object': _canvasObjects[_currentlyDrawingObjectId]?.toJson(),
       },
     );
   }
@@ -107,18 +107,20 @@ class _CanvasPageState extends State<CanvasPage> {
         // that intersects with the current mouse position.
         for (final canvasObject in _canvasObjects.values.toList().reversed) {
           if (canvasObject.intersectsWith(details.globalPosition)) {
-            _currentlyDrawingObject = canvasObject;
+            _currentlyDrawingObjectId = canvasObject.id;
             break;
           }
         }
         break;
       case _DrawMode.circle:
-        _currentlyDrawingObject =
-            CanvasCircle.createNew(details.globalPosition);
+        final newObject = CanvasCircle.createNew(details.globalPosition);
+        _canvasObjects[newObject.id] = newObject;
+        _currentlyDrawingObjectId = newObject.id;
         break;
       case _DrawMode.rectangle:
-        _currentlyDrawingObject =
-            CanvasRectangle.createNew(details.globalPosition);
+        final newObject = CanvasRectangle.createNew(details.globalPosition);
+        _canvasObjects[newObject.id] = newObject;
+        _currentlyDrawingObjectId = newObject.id;
         break;
     }
     _cursorPosition = details.globalPosition;
@@ -132,16 +134,18 @@ class _CanvasPageState extends State<CanvasPage> {
     switch (_currentMode) {
       // Moves the object to [details.delta] amount.
       case _DrawMode.pointer:
-        if (_currentlyDrawingObject != null) {
-          _currentlyDrawingObject =
-              _currentlyDrawingObject!.move(details.delta);
+        if (_currentlyDrawingObjectId != null) {
+          _canvasObjects[_currentlyDrawingObjectId!] =
+              _canvasObjects[_currentlyDrawingObjectId!]!.move(details.delta);
         }
         break;
 
       // Updates the size of the Circle
       case _DrawMode.circle:
-        final currentlyDrawingCircle = _currentlyDrawingObject as CanvasCircle;
-        _currentlyDrawingObject = currentlyDrawingCircle.copyWith(
+        final currentlyDrawingCircle =
+            _canvasObjects[_currentlyDrawingObjectId!]! as CanvasCircle;
+        _canvasObjects[_currentlyDrawingObjectId!] =
+            currentlyDrawingCircle.copyWith(
           radius:
               (details.globalPosition - currentlyDrawingCircle.center).distance,
         );
@@ -149,14 +153,15 @@ class _CanvasPageState extends State<CanvasPage> {
 
       // Updates the size of the rectangle
       case _DrawMode.rectangle:
-        _currentlyDrawingObject =
-            (_currentlyDrawingObject as CanvasRectangle).copyWith(
+        _canvasObjects[_currentlyDrawingObjectId!] =
+            (_canvasObjects[_currentlyDrawingObjectId!] as CanvasRectangle)
+                .copyWith(
           bottomRight: details.globalPosition,
         );
         break;
     }
 
-    if (_currentlyDrawingObject != null) {
+    if (_currentlyDrawingObjectId != null) {
       setState(() {});
     }
     _cursorPosition = details.globalPosition;
@@ -164,12 +169,12 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void onPanEnd(DragEndDetails _) {
-    if (_currentlyDrawingObject != null) {
+    if (_currentlyDrawingObjectId != null) {
       _syncCanvasObject(_cursorPosition);
     }
 
     setState(() {
-      _currentlyDrawingObject = null;
+      _currentlyDrawingObjectId = null;
     });
   }
 
@@ -196,7 +201,6 @@ class _CanvasPageState extends State<CanvasPage> {
                   painter: CanvasPainter(
                     userCursors: _userCursors,
                     canvasObjects: _canvasObjects,
-                    currentlyDrawingObject: _currentlyDrawingObject,
                   ),
                 ),
               ),

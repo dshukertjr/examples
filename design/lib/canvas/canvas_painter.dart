@@ -5,12 +5,9 @@ class CanvasPainter extends CustomPainter {
   final Map<String, UserCursor> userCursors;
   final Map<String, CanvasObject> canvasObjects;
 
-  final SyncedObject? currentlyDrawingObject;
-
   CanvasPainter({
     required this.userCursors,
     required this.canvasObjects,
-    required this.currentlyDrawingObject,
   });
 
   @override
