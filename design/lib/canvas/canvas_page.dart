@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:design/canvas/canvas_object.dart';
 import 'package:design/canvas/canvas_painter.dart';
 import 'package:design/main.dart';
@@ -45,6 +47,9 @@ class _CanvasPageState extends State<CanvasPage> {
 
   /// A single Canvas object that is being drawn by the user if any.
   String? _currentlyDrawingObjectId;
+
+  /// The point where the pan started
+  Offset? _panStartPoint;
 
   /// Cursor position of the user.
   Offset _cursorPosition = const Offset(0, 0);
@@ -124,6 +129,7 @@ class _CanvasPageState extends State<CanvasPage> {
         break;
     }
     _cursorPosition = details.globalPosition;
+    _panStartPoint = details.globalPosition;
     setState(() {});
   }
 
@@ -146,8 +152,10 @@ class _CanvasPageState extends State<CanvasPage> {
             _canvasObjects[_currentlyDrawingObjectId!]! as CanvasCircle;
         _canvasObjects[_currentlyDrawingObjectId!] =
             currentlyDrawingCircle.copyWith(
-          radius:
-              (details.globalPosition - currentlyDrawingCircle.center).distance,
+          center: (details.globalPosition + _panStartPoint!) / 2,
+          radius: min((details.globalPosition.dx - _panStartPoint!.dx).abs(),
+                  (details.globalPosition.dy - _panStartPoint!.dy).abs()) /
+              2,
         );
         break;
 
@@ -174,6 +182,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
 
     setState(() {
+      _panStartPoint = null;
       _currentlyDrawingObjectId = null;
     });
   }
@@ -181,79 +190,73 @@ class _CanvasPageState extends State<CanvasPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: LayoutBuilder(builder: (context, constraints) {
-        final maxWidth = constraints.maxWidth;
-        final maxHeight = constraints.maxHeight;
+      body: MouseRegion(
+        onHover: (event) {
+          _syncCanvasObject(event.position);
+        },
+        child: Stack(
+          children: [
+            // The main canvas
+            GestureDetector(
+              onPanDown: _onPanDown,
+              onPanUpdate: _onPanUpdate,
+              onPanEnd: onPanEnd,
+              child: CustomPaint(
+                size: Size(MediaQuery.of(context).size.width,
+                    MediaQuery.of(context).size.height),
+                painter: CanvasPainter(
+                  userCursors: _userCursors,
+                  canvasObjects: _canvasObjects,
+                ),
+              ),
+            ),
 
-        return MouseRegion(
-          onHover: (event) {
-            _syncCanvasObject(event.position);
-          },
-          child: Stack(
-            children: [
-              // The main canvas
-              GestureDetector(
-                onPanDown: _onPanDown,
-                onPanUpdate: _onPanUpdate,
-                onPanEnd: onPanEnd,
-                child: CustomPaint(
-                  size: Size(maxWidth, maxHeight),
-                  painter: CanvasPainter(
-                    userCursors: _userCursors,
-                    canvasObjects: _canvasObjects,
+            // Buttons to change the current mode.
+            Positioned(
+              top: 0,
+              left: 0,
+              child: Row(
+                children: [
+                  IconButton(
+                    iconSize: 48,
+                    onPressed: () {
+                      setState(() {
+                        _currentMode = _DrawMode.pointer;
+                      });
+                    },
+                    icon: const Icon(FeatherIcons.mousePointer),
+                    color:
+                        _currentMode == _DrawMode.pointer ? Colors.green : null,
                   ),
-                ),
+                  IconButton(
+                    iconSize: 48,
+                    onPressed: () {
+                      setState(() {
+                        _currentMode = _DrawMode.circle;
+                      });
+                    },
+                    icon: const Icon(Icons.circle_outlined),
+                    color:
+                        _currentMode == _DrawMode.circle ? Colors.green : null,
+                  ),
+                  IconButton(
+                    iconSize: 48,
+                    onPressed: () {
+                      setState(() {
+                        _currentMode = _DrawMode.rectangle;
+                      });
+                    },
+                    icon: const Icon(Icons.rectangle_outlined),
+                    color: _currentMode == _DrawMode.rectangle
+                        ? Colors.green
+                        : null,
+                  ),
+                ],
               ),
-
-              // Buttons to change the current mode.
-              Positioned(
-                top: 0,
-                left: 0,
-                child: Row(
-                  children: [
-                    IconButton(
-                      iconSize: 48,
-                      onPressed: () {
-                        setState(() {
-                          _currentMode = _DrawMode.pointer;
-                        });
-                      },
-                      icon: const Icon(FeatherIcons.mousePointer),
-                      color: _currentMode == _DrawMode.pointer
-                          ? Colors.green
-                          : null,
-                    ),
-                    IconButton(
-                      iconSize: 48,
-                      onPressed: () {
-                        setState(() {
-                          _currentMode = _DrawMode.circle;
-                        });
-                      },
-                      icon: const Icon(Icons.circle_outlined),
-                      color: _currentMode == _DrawMode.circle
-                          ? Colors.green
-                          : null,
-                    ),
-                    IconButton(
-                      iconSize: 48,
-                      onPressed: () {
-                        setState(() {
-                          _currentMode = _DrawMode.rectangle;
-                        });
-                      },
-                      icon: const Icon(Icons.rectangle_outlined),
-                      color: _currentMode == _DrawMode.rectangle
-                          ? Colors.green
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      }),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
