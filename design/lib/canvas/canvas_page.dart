@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import 'package:design/canvas/canvas_object.dart';
-import 'package:design/canvas/canvas_painter.dart';
-import 'package:design/main.dart';
-import 'package:design/utils/constants.dart';
+import 'package:canvas/canvas/canvas_object.dart';
+import 'package:canvas/canvas/canvas_painter.dart';
+import 'package:canvas/main.dart';
+import 'package:canvas/utils/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';

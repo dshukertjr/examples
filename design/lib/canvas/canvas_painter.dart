@@ -1,4 +1,4 @@
-import 'package:design/canvas/canvas_object.dart';
+import 'package:canvas/canvas/canvas_object.dart';
 import 'package:flutter/material.dart';
 
 class CanvasPainter extends CustomPainter {

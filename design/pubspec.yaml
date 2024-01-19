@@ -1,5 +1,5 @@
-name: design
-description: 'A new Flutter project.'
+name: canvas
+description: 'An open source Figma alternative'
 
 publish_to: 'none'
 
@@ -23,5 +23,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  #
