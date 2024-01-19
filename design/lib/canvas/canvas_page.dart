@@ -57,7 +57,10 @@ class _CanvasPageState extends State<CanvasPage> {
   @override
   void initState() {
     super.initState();
+    _initialize();
+  }
 
+  Future<void> _initialize() async {
     // Generate a random UUID for the user.
     // We could replace this with Supabase auth user ID if we want to make it
     // more like Figma.
@@ -81,6 +84,16 @@ class _CanvasPageState extends State<CanvasPage> {
               setState(() {});
             })
         .subscribe();
+
+    final initialData = await supabase
+        .from('canvas_objects')
+        .select()
+        .order('created_at', ascending: true);
+    for (final canvasObjectData in initialData) {
+      final canvasObject = CanvasObject.fromJson(canvasObjectData['object']);
+      _canvasObjects[canvasObject.id] = canvasObject;
+    }
+    setState(() {});
   }
 
   /// Syncs the user's cursor position and the currently drawing object with
@@ -176,14 +189,25 @@ class _CanvasPageState extends State<CanvasPage> {
     _syncCanvasObject(_cursorPosition);
   }
 
-  void onPanEnd(DragEndDetails _) {
+  void onPanEnd(DragEndDetails _) async {
     if (_currentlyDrawingObjectId != null) {
       _syncCanvasObject(_cursorPosition);
     }
 
+    final drawnObjectId = _currentlyDrawingObjectId;
+
     setState(() {
       _panStartPoint = null;
       _currentlyDrawingObjectId = null;
+    });
+
+    // Save whatever was drawn to Supabase DB
+    if (drawnObjectId == null) {
+      return;
+    }
+    await supabase.from('canvas_objects').upsert({
+      'id': drawnObjectId,
+      'object': _canvasObjects[drawnObjectId]!.toJson(),
     });
   }
 
