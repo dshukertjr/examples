@@ -81,10 +81,10 @@ abstract class CanvasObject extends SyncedObject {
   });
 
   factory CanvasObject.fromJson(Map<String, dynamic> json) {
-    if (json['object_type'] == CanvasCircle.type) {
-      return CanvasCircle.fromJson(json);
-    } else if (json['object_type'] == CanvasRectangle.type) {
-      return CanvasRectangle.fromJson(json);
+    if (json['object_type'] == Circle.type) {
+      return Circle.fromJson(json);
+    } else if (json['object_type'] == Rectangle.type) {
+      return Rectangle.fromJson(json);
     } else {
       throw UnimplementedError('Unknown object_type: ${json['object_type']}');
     }
@@ -100,26 +100,26 @@ abstract class CanvasObject extends SyncedObject {
 }
 
 /// Circle displayed on the canvas.
-class CanvasCircle extends CanvasObject {
+class Circle extends CanvasObject {
   static String type = 'circle';
 
   final Offset center;
   final double radius;
 
-  CanvasCircle({
+  Circle({
     required super.id,
     required super.color,
     required this.radius,
     required this.center,
   });
 
-  CanvasCircle.fromJson(Map<String, dynamic> json)
+  Circle.fromJson(Map<String, dynamic> json)
       : radius = json['radius'],
         center = Offset(json['center']['x'], json['center']['y']),
         super(id: json['id'], color: Color(json['color']));
 
   /// Constructor to be used when first starting to draw the object on the canvas
-  CanvasCircle.createNew(this.center)
+  Circle.createNew(this.center)
       : radius = 0,
         super(id: const Uuid().v4(), color: RandomColor.getRandom());
 
@@ -138,12 +138,12 @@ class CanvasCircle extends CanvasObject {
   }
 
   @override
-  CanvasCircle copyWith({
+  Circle copyWith({
     double? radius,
     Offset? center,
     Color? color,
   }) {
-    return CanvasCircle(
+    return Circle(
       radius: radius ?? this.radius,
       center: center ?? this.center,
       id: id,
@@ -158,33 +158,33 @@ class CanvasCircle extends CanvasObject {
   }
 
   @override
-  CanvasCircle move(Offset delta) {
+  Circle move(Offset delta) {
     return copyWith(center: center + delta);
   }
 }
 
 /// Rectangle displayed on the canvas.
-class CanvasRectangle extends CanvasObject {
+class Rectangle extends CanvasObject {
   static String type = 'rectangle';
 
   final Offset topLeft;
   final Offset bottomRight;
 
-  CanvasRectangle({
+  Rectangle({
     required super.id,
     required super.color,
     required this.topLeft,
     required this.bottomRight,
   });
 
-  CanvasRectangle.fromJson(Map<String, dynamic> json)
+  Rectangle.fromJson(Map<String, dynamic> json)
       : bottomRight =
             Offset(json['bottom_right']['x'], json['bottom_right']['y']),
         topLeft = Offset(json['top_left']['x'], json['top_left']['y']),
         super(id: json['id'], color: Color(json['color']));
 
   /// Constructor to be used when first starting to draw the object on the canvas
-  CanvasRectangle.createNew(Offset startingPoint)
+  Rectangle.createNew(Offset startingPoint)
       : topLeft = startingPoint,
         bottomRight = startingPoint,
         super(color: RandomColor.getRandom(), id: const Uuid().v4());
@@ -207,12 +207,12 @@ class CanvasRectangle extends CanvasObject {
   }
 
   @override
-  CanvasRectangle copyWith({
+  Rectangle copyWith({
     Offset? topLeft,
     Offset? bottomRight,
     Color? color,
   }) {
-    return CanvasRectangle(
+    return Rectangle(
       topLeft: topLeft ?? this.topLeft,
       id: id,
       bottomRight: bottomRight ?? this.bottomRight,
@@ -233,7 +233,7 @@ class CanvasRectangle extends CanvasObject {
   }
 
   @override
-  CanvasRectangle move(Offset delta) {
+  Rectangle move(Offset delta) {
     return copyWith(
       topLeft: topLeft + delta,
       bottomRight: bottomRight + delta,

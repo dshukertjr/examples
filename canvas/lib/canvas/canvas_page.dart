@@ -11,13 +11,17 @@ import 'package:uuid/uuid.dart';
 /// Different input modes users can perform
 enum _DrawMode {
   /// Mode to move around existing objects
-  pointer,
-
-  /// Mode to draw rectangles
-  rectangle,
+  pointer(iconData: Icons.pan_tool_alt),
 
   /// Mode to draw circles
-  circle,
+  circle(iconData: Icons.circle_outlined),
+
+  /// Mode to draw rectangles
+  rectangle(iconData: Icons.rectangle_outlined);
+
+  const _DrawMode({required this.iconData});
+
+  final IconData iconData;
 }
 
 /// Interactive art board page to draw and collaborate with other users.
@@ -36,7 +40,7 @@ class _CanvasPageState extends State<CanvasPage> {
   final Map<String, CanvasObject> _canvasObjects = {};
 
   /// Supabase realtime channel to communicate to other clients
-  late final RealtimeChannel _cursorChannel;
+  late final RealtimeChannel _canvasChanel;
 
   /// Randomly generated UUID for the user
   late final String _myId;
@@ -66,15 +70,13 @@ class _CanvasPageState extends State<CanvasPage> {
     _myId = const Uuid().v4();
 
     // Start listening to broadcast messages to display other users' cursors and objects.
-    _cursorChannel = supabase
+    _canvasChanel = supabase
         .channel(Constants.channelName)
         .onBroadcast(
             event: Constants.broadcastEventName,
             callback: (payload) {
               final cursor = UserCursor.fromJson(payload['cursor']);
-              if (cursor.id != _myId) {
-                _userCursors[cursor.id] = cursor;
-              }
+              _userCursors[cursor.id] = cursor;
 
               if (payload['object'] != null) {
                 final object = CanvasObject.fromJson(payload['object']);
@@ -102,7 +104,7 @@ class _CanvasPageState extends State<CanvasPage> {
       position: cursorPosition,
       id: _myId,
     );
-    return _cursorChannel.sendBroadcastMessage(
+    return _canvasChanel.sendBroadcastMessage(
       event: Constants.broadcastEventName,
       payload: {
         'cursor': myCursor.toJson(),
@@ -130,12 +132,12 @@ class _CanvasPageState extends State<CanvasPage> {
         }
         break;
       case _DrawMode.circle:
-        final newObject = CanvasCircle.createNew(details.globalPosition);
+        final newObject = Circle.createNew(details.globalPosition);
         _canvasObjects[newObject.id] = newObject;
         _currentlyDrawingObjectId = newObject.id;
         break;
       case _DrawMode.rectangle:
-        final newObject = CanvasRectangle.createNew(details.globalPosition);
+        final newObject = Rectangle.createNew(details.globalPosition);
         _canvasObjects[newObject.id] = newObject;
         _currentlyDrawingObjectId = newObject.id;
         break;
@@ -161,7 +163,7 @@ class _CanvasPageState extends State<CanvasPage> {
       // Updates the size of the Circle
       case _DrawMode.circle:
         final currentlyDrawingCircle =
-            _canvasObjects[_currentlyDrawingObjectId!]! as CanvasCircle;
+            _canvasObjects[_currentlyDrawingObjectId!]! as Circle;
         _canvasObjects[_currentlyDrawingObjectId!] =
             currentlyDrawingCircle.copyWith(
           center: (details.globalPosition + _panStartPoint!) / 2,
@@ -174,8 +176,7 @@ class _CanvasPageState extends State<CanvasPage> {
       // Updates the size of the rectangle
       case _DrawMode.rectangle:
         _canvasObjects[_currentlyDrawingObjectId!] =
-            (_canvasObjects[_currentlyDrawingObjectId!] as CanvasRectangle)
-                .copyWith(
+            (_canvasObjects[_currentlyDrawingObjectId!] as Rectangle).copyWith(
           bottomRight: details.globalPosition,
         );
         break;
@@ -239,42 +240,18 @@ class _CanvasPageState extends State<CanvasPage> {
               top: 0,
               left: 0,
               child: Row(
-                children: [
-                  IconButton(
-                    iconSize: 48,
-                    onPressed: () {
-                      setState(() {
-                        _currentMode = _DrawMode.pointer;
-                      });
-                    },
-                    icon: const Icon(Icons.pan_tool_alt),
-                    color:
-                        _currentMode == _DrawMode.pointer ? Colors.green : null,
-                  ),
-                  IconButton(
-                    iconSize: 48,
-                    onPressed: () {
-                      setState(() {
-                        _currentMode = _DrawMode.circle;
-                      });
-                    },
-                    icon: const Icon(Icons.circle_outlined),
-                    color:
-                        _currentMode == _DrawMode.circle ? Colors.green : null,
-                  ),
-                  IconButton(
-                    iconSize: 48,
-                    onPressed: () {
-                      setState(() {
-                        _currentMode = _DrawMode.rectangle;
-                      });
-                    },
-                    icon: const Icon(Icons.rectangle_outlined),
-                    color: _currentMode == _DrawMode.rectangle
-                        ? Colors.green
-                        : null,
-                  ),
-                ],
+                children: _DrawMode.values
+                    .map((e) => IconButton(
+                          iconSize: 48,
+                          onPressed: () {
+                            setState(() {
+                              _currentMode = e;
+                            });
+                          },
+                          icon: Icon(e.iconData),
+                          color: _currentMode == e ? Colors.green : null,
+                        ))
+                    .toList(),
               ),
             ),
           ],

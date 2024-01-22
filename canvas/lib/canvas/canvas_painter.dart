@@ -14,12 +14,12 @@ class CanvasPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // Draw each canvas objects
     for (final canvasObject in canvasObjects.values) {
-      if (canvasObject is CanvasCircle) {
+      if (canvasObject is Circle) {
         final position = canvasObject.center;
         final radius = canvasObject.radius;
         canvas.drawCircle(
             position, radius, Paint()..color = canvasObject.color);
-      } else if (canvasObject is CanvasRectangle) {
+      } else if (canvasObject is Rectangle) {
         final position = canvasObject.topLeft;
         final bottomRight = canvasObject.bottomRight;
         canvas.drawRect(
