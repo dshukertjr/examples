@@ -11,7 +11,7 @@ import 'package:uuid/uuid.dart';
 /// Different input modes users can perform
 enum _DrawMode {
   /// Mode to move around existing objects
-  pointer(iconData: Icons.pan_tool_alt),
+  pointer(iconData: Icons.pan_tool_alt_outlined),
 
   /// Mode to draw circles
   circle(iconData: Icons.circle_outlined),

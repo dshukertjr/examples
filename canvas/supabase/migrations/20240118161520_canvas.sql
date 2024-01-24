@@ -5,6 +5,6 @@ create table canvas_objects (
 );
 
 alter table canvas_objects enable row level security;
-create policy select_canvas_objects on canvas_objects for select using (true);
-create policy insert_canvas_objects on canvas_objects for insert with check (true);
-create policy update_canvas_objects on canvas_objects for update using (true);
+create policy select_canvas_objects on canvas_objects as permissive for select to anon using (true);
+create policy insert_canvas_objects on canvas_objects as permissive for insert to anon with check (true);
+create policy update_canvas_objects on canvas_objects as permissive for update to anon using (true);
