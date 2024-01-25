@@ -21,6 +21,7 @@ enum _DrawMode {
 
   const _DrawMode({required this.iconData});
 
+  /// Icon used in the IconButton to toggle the mode
   final IconData iconData;
 }
 
@@ -241,15 +242,15 @@ class _CanvasPageState extends State<CanvasPage> {
               left: 0,
               child: Row(
                 children: _DrawMode.values
-                    .map((e) => IconButton(
+                    .map((mode) => IconButton(
                           iconSize: 48,
                           onPressed: () {
                             setState(() {
-                              _currentMode = e;
+                              _currentMode = mode;
                             });
                           },
-                          icon: Icon(e.iconData),
-                          color: _currentMode == e ? Colors.green : null,
+                          icon: Icon(mode.iconData),
+                          color: _currentMode == mode ? Colors.green : null,
                         ))
                     .toList(),
               ),
