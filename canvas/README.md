@@ -1,4 +1,4 @@
-# Figma Clone
+# Flutter Figma Clone
 
 ![Supabase Figma Clone](https://raw.githubusercontent.com/dshukertjr/examples/main/.github/images/design.png 'Supabase Figma Clone')
 
