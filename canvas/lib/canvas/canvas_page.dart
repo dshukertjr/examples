@@ -183,25 +183,18 @@ class _CanvasPageState extends State<CanvasPage> {
         break;
     }
 
+    _cursorPosition = details.globalPosition;
     if (_currentlyDrawingObjectId != null) {
       setState(() {});
-    }
-    _cursorPosition = details.globalPosition;
-    _syncCanvasObject(_cursorPosition);
-  }
-
-  void onPanEnd(DragEndDetails _) async {
-    if (_currentlyDrawingObjectId != null) {
       _syncCanvasObject(_cursorPosition);
     }
+  }
+
+  void _onPanEnd(DragEndDetails _) async {
+    _panStartPoint = null;
+    _currentlyDrawingObjectId = null;
 
     final drawnObjectId = _currentlyDrawingObjectId;
-
-    setState(() {
-      _panStartPoint = null;
-      _currentlyDrawingObjectId = null;
-    });
-
     // Save whatever was drawn to Supabase DB
     if (drawnObjectId == null) {
       return;
@@ -225,7 +218,7 @@ class _CanvasPageState extends State<CanvasPage> {
             GestureDetector(
               onPanDown: _onPanDown,
               onPanUpdate: _onPanUpdate,
-              onPanEnd: onPanEnd,
+              onPanEnd: _onPanEnd,
               child: CustomPaint(
                 size: MediaQuery.of(context).size,
                 painter: CanvasPainter(

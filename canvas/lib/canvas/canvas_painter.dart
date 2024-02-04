@@ -15,17 +15,18 @@ class CanvasPainter extends CustomPainter {
     // Draw each canvas objects
     for (final canvasObject in canvasObjects.values) {
       if (canvasObject is Circle) {
-        final position = canvasObject.center;
-        final radius = canvasObject.radius;
         canvas.drawCircle(
-            position, radius, Paint()..color = canvasObject.color);
+          canvasObject.center,
+          canvasObject.radius,
+          Paint()..color = canvasObject.color,
+        );
       } else if (canvasObject is Rectangle) {
-        final position = canvasObject.topLeft;
+        final topLeft = canvasObject.topLeft;
         final bottomRight = canvasObject.bottomRight;
         canvas.drawRect(
-            Rect.fromLTRB(
-                position.dx, position.dy, bottomRight.dx, bottomRight.dy),
-            Paint()..color = canvasObject.color);
+          Rect.fromLTRB(topLeft.dx, topLeft.dy, bottomRight.dx, bottomRight.dy),
+          Paint()..color = canvasObject.color,
+        );
       }
     }
 
@@ -44,5 +45,5 @@ class CanvasPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(oldPainter) => true;
+  bool shouldRepaint(oldDelegate) => true;
 }
