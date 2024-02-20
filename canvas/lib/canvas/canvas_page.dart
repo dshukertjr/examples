@@ -535,12 +535,13 @@ class _RightPanel extends StatelessWidget {
                     Expanded(
                       child: TextFormField(
                         key: ValueKey('fill-${object?.id}'),
-                        initialValue:
-                            object?.color.value.toRadixString(16).substring(2),
+                        initialValue: object?.color.value.toRadixString(16),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                        ),
                         onChanged: (value) {
                           try {
-                            final color =
-                                Color(int.parse('ff$value', radix: 16));
+                            final color = Color(int.parse(value, radix: 16));
                             late final CanvasObject newObject;
                             if (object is Circle) {
                               newObject =
