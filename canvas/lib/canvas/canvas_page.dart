@@ -6,6 +6,7 @@ import 'package:canvas/main.dart';
 import 'package:canvas/utils/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_hsvcolor_picker/flutter_hsvcolor_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
@@ -307,13 +308,15 @@ class _CanvasPageState extends State<CanvasPage> {
                 onPanDown: _onPanDown,
                 onPanUpdate: _onPanUpdate,
                 onPanEnd: _onPanEnd,
-                child: CustomPaint(
-                  painter: CanvasPainter(
-                    userCursors: _userCursors,
-                    canvasObjects: _canvasObjects,
-                    selectedObjectId: _selectedObjectId,
+                child: ClipRect(
+                  child: CustomPaint(
+                    painter: CanvasPainter(
+                      userCursors: _userCursors,
+                      canvasObjects: _canvasObjects,
+                      selectedObjectId: _selectedObjectId,
+                    ),
+                    child: const SizedBox.expand(),
                   ),
-                  child: const SizedBox.expand(),
                 ),
               ),
             ),
@@ -396,13 +399,16 @@ class _LeftPanel extends StatelessWidget {
 ///
 /// Allows users to edit the currently selected object.
 class _RightPanel extends StatelessWidget {
-  const _RightPanel({
+  _RightPanel({
     required this.object,
     required this.onObjectChanged,
   });
 
   final CanvasObject? object;
   final void Function(CanvasObject object) onObjectChanged;
+
+  final OverlayPortalController _overlayPortalController =
+      OverlayPortalController();
 
   @override
   Widget build(BuildContext context) {
@@ -414,45 +420,16 @@ class _RightPanel extends StatelessWidget {
           : ListView(
               padding: const EdgeInsets.all(12),
               children: [
-                TextFormField(
-                  key: ValueKey('fill-${object?.id}'),
-                  initialValue: object?.color.value.toRadixString(16),
-                  decoration: InputDecoration(
-                    label: const Text('Fill'),
-                    prefix: Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        color: object?.color,
-                      ),
-                    ),
-                  ),
-                  onChanged: (value) {
-                    try {
-                      final color = Color(int.parse(value, radix: 16));
-                      late final CanvasObject newObject;
-                      if (object is Circle) {
-                        newObject = (object as Circle).copyWith(color: color);
-                      } else if (object is Rectangle) {
-                        newObject =
-                            (object as Rectangle).copyWith(color: color);
-                      }
-                      onObjectChanged(newObject);
-                    } catch (e) {
-                      // ignore if not a valid color
-                    }
-                  },
-                ),
                 Row(
                   children: [
                     Expanded(
                       child: TextFormField(
                         key: ValueKey('width-${object?.id}'),
                         keyboardType: TextInputType.number,
-                        initialValue: object?.width.toString(),
+                        initialValue: object?.width.round().toString(),
                         decoration: const InputDecoration(
-                          label: Text('Width'),
+                          prefixText: 'W ',
+                          border: InputBorder.none,
                         ),
                         onChanged: (value) {
                           try {
@@ -483,9 +460,10 @@ class _RightPanel extends StatelessWidget {
                       child: TextFormField(
                         key: ValueKey('height-${object?.id}'),
                         keyboardType: TextInputType.number,
-                        initialValue: object?.height.toString(),
+                        initialValue: object?.height.round().toString(),
                         decoration: const InputDecoration(
-                          label: Text('Height'),
+                          prefixText: 'H ',
+                          border: InputBorder.none,
                         ),
                         onChanged: (value) {
                           try {
@@ -507,6 +485,73 @@ class _RightPanel extends StatelessWidget {
                             onObjectChanged(newObject);
                           } catch (e) {
                             // ignore any parsing error
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                const Text('Fill'),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: _overlayPortalController.toggle,
+                      icon: OverlayPortal(
+                        controller: _overlayPortalController,
+                        overlayChildBuilder: (context) {
+                          return Positioned(
+                            top: 0,
+                            right: 250,
+                            child: Container(
+                              color: Colors.grey[900],
+                              padding: const EdgeInsets.all(8),
+                              width: 250,
+                              child: ColorPicker(
+                                color: object?.color ?? Colors.black,
+                                onChanged: (color) {
+                                  late final CanvasObject newObject;
+                                  if (object is Circle) {
+                                    newObject = (object as Circle)
+                                        .copyWith(color: color);
+                                  } else if (object is Rectangle) {
+                                    newObject = (object as Rectangle)
+                                        .copyWith(color: color);
+                                  }
+                                  onObjectChanged(newObject);
+                                },
+                                pickerOrientation: PickerOrientation.portrait,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          color: object?.color,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextFormField(
+                        key: ValueKey('fill-${object?.id}'),
+                        initialValue:
+                            object?.color.value.toRadixString(16).substring(2),
+                        onChanged: (value) {
+                          try {
+                            final color =
+                                Color(int.parse('ff$value', radix: 16));
+                            late final CanvasObject newObject;
+                            if (object is Circle) {
+                              newObject =
+                                  (object as Circle).copyWith(color: color);
+                            } else if (object is Rectangle) {
+                              newObject =
+                                  (object as Rectangle).copyWith(color: color);
+                            }
+                            onObjectChanged(newObject);
+                          } catch (e) {
+                            // ignore if not a valid color
                           }
                         },
                       ),
