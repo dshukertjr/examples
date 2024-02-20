@@ -74,10 +74,14 @@ class UserCursor extends SyncedObject {
 /// Base model for any design objects displayed on the canvas.
 abstract class CanvasObject extends SyncedObject {
   final Color color;
+  final double width;
+  final double height;
 
   CanvasObject({
     required super.id,
     required this.color,
+    required this.width,
+    required this.height,
   });
 
   factory CanvasObject.fromJson(Map<String, dynamic> json) {
@@ -106,6 +110,8 @@ class Circle extends CanvasObject {
 
   Circle({
     required super.id,
+    required super.width,
+    required super.height,
     required super.color,
     required this.radius,
     required this.center,
@@ -114,12 +120,21 @@ class Circle extends CanvasObject {
   Circle.fromJson(Map<String, dynamic> json)
       : radius = json['radius'],
         center = Offset(json['center']['x'], json['center']['y']),
-        super(id: json['id'], color: Color(json['color']));
+        super(
+            id: json['id'],
+            color: Color(json['color']),
+            width: json['radius'] * 2,
+            height: json['radius'] * 2);
 
   /// Constructor to be used when first starting to draw the object on the canvas
   Circle.createNew(this.center)
       : radius = 0,
-        super(id: const Uuid().v4(), color: RandomColor.getRandom());
+        super(
+          id: const Uuid().v4(),
+          color: RandomColor.getRandom(),
+          width: 0,
+          height: 0,
+        );
 
   @override
   Map<String, dynamic> toJson() {
@@ -146,6 +161,8 @@ class Circle extends CanvasObject {
       center: center ?? this.center,
       id: id,
       color: color ?? this.color,
+      width: (radius ?? this.radius) * 2,
+      height: (radius ?? this.radius) * 2,
     );
   }
 
@@ -170,6 +187,8 @@ class Rectangle extends CanvasObject {
 
   Rectangle({
     required super.id,
+    required super.width,
+    required super.height,
     required super.color,
     required this.topLeft,
     required this.bottomRight,
@@ -179,13 +198,25 @@ class Rectangle extends CanvasObject {
       : bottomRight =
             Offset(json['bottom_right']['x'], json['bottom_right']['y']),
         topLeft = Offset(json['top_left']['x'], json['top_left']['y']),
-        super(id: json['id'], color: Color(json['color']));
+        super(
+            id: json['id'],
+            color: Color(json['color']),
+            width: (json['top_left']['x'] - json['bottom_right']['x'] as double)
+                .abs(),
+            height:
+                (json['top_left']['y'] - json['bottom_right']['y'] as double)
+                    .abs());
 
   /// Constructor to be used when first starting to draw the object on the canvas
   Rectangle.createNew(Offset startingPoint)
       : topLeft = startingPoint,
         bottomRight = startingPoint,
-        super(color: RandomColor.getRandom(), id: const Uuid().v4());
+        super(
+          color: RandomColor.getRandom(),
+          id: const Uuid().v4(),
+          width: 0,
+          height: 0,
+        );
 
   @override
   Map<String, dynamic> toJson() {
@@ -211,10 +242,16 @@ class Rectangle extends CanvasObject {
     Color? color,
   }) {
     return Rectangle(
-      topLeft: topLeft ?? this.topLeft,
       id: id,
+      topLeft: topLeft ?? this.topLeft,
       bottomRight: bottomRight ?? this.bottomRight,
       color: color ?? this.color,
+      width: ((topLeft ?? this.topLeft) - (bottomRight ?? this.bottomRight))
+          .dx
+          .abs(),
+      height: ((topLeft ?? this.topLeft) - (bottomRight ?? this.bottomRight))
+          .dy
+          .abs(),
     );
   }
 

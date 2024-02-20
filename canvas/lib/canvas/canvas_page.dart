@@ -87,7 +87,9 @@ class _CanvasPageState extends State<CanvasPage> {
             })
         .onPresenceLeave((payload) {
       final leftId = payload.leftPresences.first.payload['id'];
-      _userCursors.remove(leftId);
+      setState(() {
+        _userCursors.remove(leftId);
+      });
     }).subscribe((status, error) {
       if (status == RealtimeSubscribeStatus.subscribed) {
         _canvasChanel.track({
@@ -96,6 +98,7 @@ class _CanvasPageState extends State<CanvasPage> {
       }
     });
 
+    /// Fetch the initial data from the database
     final initialData = await supabase
         .from('canvas_objects')
         .select()
@@ -132,12 +135,17 @@ class _CanvasPageState extends State<CanvasPage> {
   void _onPanDown(DragDownDetails details) {
     switch (_currentMode) {
       case _DrawMode.pointer:
-        // Loop through the canvas objects to find if there are any
-        // that intersects with the current mouse position.
-        for (final canvasObject in _canvasObjects.values.toList().reversed) {
-          if (canvasObject.intersectsWith(details.localPosition)) {
-            _selectedObjectId = canvasObject.id;
-            break;
+        final selectedObject = _canvasObjects[_selectedObjectId ?? ''];
+        if (selectedObject == null ||
+            !selectedObject.intersectsWith(details.localPosition)) {
+          _selectedObjectId = null;
+          // Loop through the canvas objects to find if there are any
+          // that intersects with the current mouse position.
+          for (final canvasObject in _canvasObjects.values.toList().reversed) {
+            if (canvasObject.intersectsWith(details.localPosition)) {
+              _selectedObjectId = canvasObject.id;
+              break;
+            }
           }
         }
         break;
@@ -209,6 +217,7 @@ class _CanvasPageState extends State<CanvasPage> {
     await _saveCanvasObject(_canvasObjects[drawnObjectId]!);
   }
 
+  /// Saves a single canvas object to the database.
   Future<void> _saveCanvasObject(CanvasObject object) async {
     await supabase.from('canvas_objects').upsert({
       'id': object.id,
@@ -236,6 +245,7 @@ class _CanvasPageState extends State<CanvasPage> {
                     ))
                 .toList(),
           ),
+          // Displays the list of users currently drawing on the canvas
           actions: [
             ...[..._userCursors.values.map((e) => e.id), _myId]
                 .map(
@@ -252,7 +262,7 @@ class _CanvasPageState extends State<CanvasPage> {
           ]),
       body: Row(
         children: [
-          LeftPanel(
+          _LeftPanel(
             objects: _canvasObjects.values.toList().reversed.toList(),
             selectedObjectId: _selectedObjectId,
             onObjectSelected: (objectId) {
@@ -281,7 +291,7 @@ class _CanvasPageState extends State<CanvasPage> {
               ),
             ),
           ),
-          RightPanel(
+          _RightPanel(
             object: _canvasObjects[_selectedObjectId],
             onObjectChanged: (object) async {
               setState(() {
@@ -296,9 +306,11 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 }
 
-class LeftPanel extends StatelessWidget {
-  const LeftPanel({
-    super.key,
+/// Side panel on the left.
+///
+/// Allows users to view and select the objects drawn on the canvas.
+class _LeftPanel extends StatelessWidget {
+  const _LeftPanel({
     required this.objects,
     required this.selectedObjectId,
     required this.onObjectSelected,
@@ -344,9 +356,11 @@ class LeftPanel extends StatelessWidget {
   }
 }
 
-class RightPanel extends StatelessWidget {
-  const RightPanel({
-    super.key,
+/// Side panel on the right.
+///
+/// Allows users to edit the currently selected object.
+class _RightPanel extends StatelessWidget {
+  const _RightPanel({
     required this.object,
     required this.onObjectChanged,
   });
@@ -365,7 +379,7 @@ class RightPanel extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               children: [
                 TextFormField(
-                  key: ValueKey(object?.id),
+                  key: ValueKey('fill-${object?.id}'),
                   initialValue: object?.color.value.toRadixString(16),
                   decoration: InputDecoration(
                     label: const Text('Fill'),
@@ -393,6 +407,75 @@ class RightPanel extends StatelessWidget {
                       // ignore if not a valid color
                     }
                   },
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        key: ValueKey('width-${object?.id}'),
+                        keyboardType: TextInputType.number,
+                        initialValue: object?.width.toString(),
+                        decoration: const InputDecoration(
+                          label: Text('Width'),
+                        ),
+                        onChanged: (value) {
+                          try {
+                            late final CanvasObject newObject;
+                            if (object is Circle) {
+                              newObject = (object as Circle).copyWith(
+                                radius: double.parse(value) / 2,
+                              );
+                            } else if (object is Rectangle) {
+                              final currentObject = object as Rectangle;
+                              newObject = currentObject.copyWith(
+                                bottomRight: Offset(
+                                  currentObject.topLeft.dx +
+                                      double.parse(value),
+                                  currentObject.bottomRight.dy,
+                                ),
+                              );
+                            }
+                            onObjectChanged(newObject);
+                          } catch (e) {
+                            // ignore any parsing error
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextFormField(
+                        key: ValueKey('height-${object?.id}'),
+                        keyboardType: TextInputType.number,
+                        initialValue: object?.height.toString(),
+                        decoration: const InputDecoration(
+                          label: Text('Height'),
+                        ),
+                        onChanged: (value) {
+                          try {
+                            late final CanvasObject newObject;
+                            if (object is Circle) {
+                              newObject = (object as Circle).copyWith(
+                                radius: double.parse(value) / 2,
+                              );
+                            } else if (object is Rectangle) {
+                              final currentObject = object as Rectangle;
+                              newObject = currentObject.copyWith(
+                                bottomRight: Offset(
+                                  currentObject.bottomRight.dx,
+                                  currentObject.topLeft.dy +
+                                      double.parse(value),
+                                ),
+                              );
+                            }
+                            onObjectChanged(newObject);
+                          } catch (e) {
+                            // ignore any parsing error
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
