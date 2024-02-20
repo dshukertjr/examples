@@ -5,6 +5,7 @@ import 'package:canvas/canvas/canvas_painter.dart';
 import 'package:canvas/main.dart';
 import 'package:canvas/utils/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
@@ -58,6 +59,8 @@ class _CanvasPageState extends State<CanvasPage> {
   /// Cursor position of the user.
   Offset _cursorPosition = const Offset(0, 0);
 
+  bool _isTextFieldFocused = false;
+
   @override
   void initState() {
     super.initState();
@@ -96,6 +99,21 @@ class _CanvasPageState extends State<CanvasPage> {
           'id': _myId,
         });
       }
+    });
+
+    // Listen to keyboard events to handle deleting objects
+    ServicesBinding.instance.keyboard.addHandler((event) {
+      final key = event.logicalKey.keyLabel;
+
+      if (event is KeyDownEvent &&
+          key == 'Backspace' &&
+          !_isTextFieldFocused &&
+          _selectedObjectId != null) {
+        _deleteCanvasObject(_selectedObjectId!);
+        return true;
+      }
+
+      return false;
     });
 
     /// Fetch the initial data from the database
@@ -225,6 +243,15 @@ class _CanvasPageState extends State<CanvasPage> {
     });
   }
 
+  Future<void> _deleteCanvasObject(String objectId) async {
+    setState(() {
+      _selectedObjectId = null;
+      _canvasObjects.remove(objectId);
+    });
+
+    await supabase.from('canvas_objects').delete().eq('id', objectId);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -291,14 +318,23 @@ class _CanvasPageState extends State<CanvasPage> {
               ),
             ),
           ),
-          _RightPanel(
-            object: _canvasObjects[_selectedObjectId],
-            onObjectChanged: (object) async {
-              setState(() {
-                _canvasObjects[object.id] = object;
-              });
-              await _saveCanvasObject(object);
-            },
+          FocusScope(
+            child: Focus(
+              onFocusChange: (focus) {
+                setState(() {
+                  _isTextFieldFocused = focus;
+                });
+              },
+              child: _RightPanel(
+                object: _canvasObjects[_selectedObjectId],
+                onObjectChanged: (object) async {
+                  setState(() {
+                    _canvasObjects[object.id] = object;
+                  });
+                  await _saveCanvasObject(object);
+                },
+              ),
+            ),
           ),
         ],
       ),
