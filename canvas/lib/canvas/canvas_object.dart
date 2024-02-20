@@ -94,6 +94,9 @@ abstract class CanvasObject extends SyncedObject {
     }
   }
 
+  /// Standard copyWith to create a new instance with updated values
+  CanvasObject copyWith();
+
   /// Whether or not the object intersects with the given point.
   bool intersectsWith(Offset point);
 
