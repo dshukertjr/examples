@@ -93,8 +93,6 @@ abstract class CanvasObject extends SyncedObject {
   /// Whether or not the object intersects with the given point.
   bool intersectsWith(Offset point);
 
-  CanvasObject copyWith();
-
   /// Moves the object to a new position
   CanvasObject move(Offset delta);
 }

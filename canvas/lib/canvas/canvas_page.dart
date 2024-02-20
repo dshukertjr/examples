@@ -50,7 +50,7 @@ class _CanvasPageState extends State<CanvasPage> {
   _DrawMode _currentMode = _DrawMode.pointer;
 
   /// A single Canvas object that is being drawn by the user if any.
-  String? _currentlyDrawingObjectId;
+  String? _selectedObjectId;
 
   /// The point where the pan started
   Offset? _panStartPoint;
@@ -109,8 +109,8 @@ class _CanvasPageState extends State<CanvasPage> {
       event: Constants.broadcastEventName,
       payload: {
         'cursor': myCursor.toJson(),
-        if (_currentlyDrawingObjectId != null)
-          'object': _canvasObjects[_currentlyDrawingObjectId]?.toJson(),
+        if (_selectedObjectId != null)
+          'object': _canvasObjects[_selectedObjectId]?.toJson(),
       },
     );
   }
@@ -126,25 +126,25 @@ class _CanvasPageState extends State<CanvasPage> {
         // Loop through the canvas objects to find if there are any
         // that intersects with the current mouse position.
         for (final canvasObject in _canvasObjects.values.toList().reversed) {
-          if (canvasObject.intersectsWith(details.globalPosition)) {
-            _currentlyDrawingObjectId = canvasObject.id;
+          if (canvasObject.intersectsWith(details.localPosition)) {
+            _selectedObjectId = canvasObject.id;
             break;
           }
         }
         break;
       case _DrawMode.circle:
-        final newObject = Circle.createNew(details.globalPosition);
+        final newObject = Circle.createNew(details.localPosition);
         _canvasObjects[newObject.id] = newObject;
-        _currentlyDrawingObjectId = newObject.id;
+        _selectedObjectId = newObject.id;
         break;
       case _DrawMode.rectangle:
-        final newObject = Rectangle.createNew(details.globalPosition);
+        final newObject = Rectangle.createNew(details.localPosition);
         _canvasObjects[newObject.id] = newObject;
-        _currentlyDrawingObjectId = newObject.id;
+        _selectedObjectId = newObject.id;
         break;
     }
-    _cursorPosition = details.globalPosition;
-    _panStartPoint = details.globalPosition;
+    _cursorPosition = details.localPosition;
+    _panStartPoint = details.localPosition;
     setState(() {});
   }
 
@@ -155,36 +155,35 @@ class _CanvasPageState extends State<CanvasPage> {
     switch (_currentMode) {
       // Moves the object to [details.delta] amount.
       case _DrawMode.pointer:
-        if (_currentlyDrawingObjectId != null) {
-          _canvasObjects[_currentlyDrawingObjectId!] =
-              _canvasObjects[_currentlyDrawingObjectId!]!.move(details.delta);
+        if (_selectedObjectId != null) {
+          _canvasObjects[_selectedObjectId!] =
+              _canvasObjects[_selectedObjectId!]!.move(details.delta);
         }
         break;
 
       // Updates the size of the Circle
       case _DrawMode.circle:
         final currentlyDrawingCircle =
-            _canvasObjects[_currentlyDrawingObjectId!]! as Circle;
-        _canvasObjects[_currentlyDrawingObjectId!] =
-            currentlyDrawingCircle.copyWith(
-          center: (details.globalPosition + _panStartPoint!) / 2,
-          radius: min((details.globalPosition.dx - _panStartPoint!.dx).abs(),
-                  (details.globalPosition.dy - _panStartPoint!.dy).abs()) /
+            _canvasObjects[_selectedObjectId!]! as Circle;
+        _canvasObjects[_selectedObjectId!] = currentlyDrawingCircle.copyWith(
+          center: (details.localPosition + _panStartPoint!) / 2,
+          radius: min((details.localPosition.dx - _panStartPoint!.dx).abs(),
+                  (details.localPosition.dy - _panStartPoint!.dy).abs()) /
               2,
         );
         break;
 
       // Updates the size of the rectangle
       case _DrawMode.rectangle:
-        _canvasObjects[_currentlyDrawingObjectId!] =
-            (_canvasObjects[_currentlyDrawingObjectId!] as Rectangle).copyWith(
-          bottomRight: details.globalPosition,
+        _canvasObjects[_selectedObjectId!] =
+            (_canvasObjects[_selectedObjectId!] as Rectangle).copyWith(
+          bottomRight: details.localPosition,
         );
         break;
     }
 
-    _cursorPosition = details.globalPosition;
-    if (_currentlyDrawingObjectId != null) {
+    _cursorPosition = details.localPosition;
+    if (_selectedObjectId != null) {
       setState(() {});
       _syncCanvasObject(_cursorPosition);
     }
@@ -192,64 +191,191 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _onPanEnd(DragEndDetails _) async {
     _panStartPoint = null;
-    _currentlyDrawingObjectId = null;
 
-    final drawnObjectId = _currentlyDrawingObjectId;
+    final drawnObjectId = _selectedObjectId;
     // Save whatever was drawn to Supabase DB
     if (drawnObjectId == null) {
       return;
     }
+    await _saveCanvasObject(_canvasObjects[drawnObjectId]!);
+  }
+
+  Future<void> _saveCanvasObject(CanvasObject object) async {
     await supabase.from('canvas_objects').upsert({
-      'id': drawnObjectId,
-      'object': _canvasObjects[drawnObjectId]!.toJson(),
+      'id': object.id,
+      'object': object.toJson(),
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: MouseRegion(
-        onHover: (event) {
-          _syncCanvasObject(event.position);
-        },
-        child: Stack(
-          children: [
-            // The main canvas
-            GestureDetector(
-              onPanDown: _onPanDown,
-              onPanUpdate: _onPanUpdate,
-              onPanEnd: _onPanEnd,
-              child: CustomPaint(
-                size: MediaQuery.of(context).size,
-                painter: CanvasPainter(
-                  userCursors: _userCursors,
-                  canvasObjects: _canvasObjects,
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        leadingWidth: 300,
+        backgroundColor: Colors.grey[900],
+        leading: Row(
+          children: _DrawMode.values
+              .map((mode) => IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _currentMode = mode;
+                      });
+                    },
+                    icon: Icon(mode.iconData),
+                    color: _currentMode == mode ? Colors.green : Colors.white,
+                  ))
+              .toList(),
+        ),
+      ),
+      body: Row(
+        children: [
+          LeftPanel(
+            objects: _canvasObjects.values.toList().reversed.toList(),
+            selectedObjectId: _selectedObjectId,
+            onObjectSelected: (objectId) {
+              setState(() {
+                _selectedObjectId = objectId;
+              });
+            },
+          ),
+          Expanded(
+            child: MouseRegion(
+              onHover: (event) {
+                _syncCanvasObject(event.position);
+              },
+              child: GestureDetector(
+                onPanDown: _onPanDown,
+                onPanUpdate: _onPanUpdate,
+                onPanEnd: _onPanEnd,
+                child: CustomPaint(
+                  painter: CanvasPainter(
+                    userCursors: _userCursors,
+                    canvasObjects: _canvasObjects,
+                    selectedObjectId: _selectedObjectId,
+                  ),
+                  child: const SizedBox.expand(),
                 ),
               ),
             ),
+          ),
+          RightPanel(
+            object: _canvasObjects[_selectedObjectId],
+            onObjectChanged: (object) async {
+              setState(() {
+                _canvasObjects[object.id] = object;
+              });
+              await _saveCanvasObject(object);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-            // Buttons to change the current mode.
-            Positioned(
-              top: 0,
-              left: 0,
-              child: Row(
-                children: _DrawMode.values
-                    .map((mode) => IconButton(
-                          iconSize: 48,
-                          onPressed: () {
-                            setState(() {
-                              _currentMode = mode;
-                            });
-                          },
-                          icon: Icon(mode.iconData),
-                          color: _currentMode == mode ? Colors.green : null,
-                        ))
-                    .toList(),
-              ),
-            ),
-          ],
+class LeftPanel extends StatelessWidget {
+  const LeftPanel({
+    super.key,
+    required this.objects,
+    required this.selectedObjectId,
+    required this.onObjectSelected,
+  });
+  final List<CanvasObject> objects;
+  final String? selectedObjectId;
+  final void Function(String objectId) onObjectSelected;
+
+  IconData _getObjectIcon(object) {
+    if (object is Circle) {
+      return Icons.circle_outlined;
+    } else if (object is Rectangle) {
+      return Icons.rectangle_outlined;
+    } else {
+      throw UnimplementedError('Unknown object type: ${object.runtimeType}');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.grey[900],
+      child: SizedBox(
+        width: 200,
+        child: ListView.builder(
+          itemCount: objects.length,
+          itemBuilder: (context, index) {
+            final object = objects[index];
+            return ListTile(
+              selected: object.id == selectedObjectId,
+              selectedTileColor: Colors.indigo[900],
+              selectedColor: Colors.white,
+              onTap: () {
+                onObjectSelected(object.id);
+              },
+              title: Text(object.runtimeType.toString()),
+              leading: Icon(_getObjectIcon(object)),
+            );
+          },
         ),
       ),
+    );
+  }
+}
+
+class RightPanel extends StatelessWidget {
+  const RightPanel({
+    super.key,
+    required this.object,
+    required this.onObjectChanged,
+  });
+
+  final CanvasObject? object;
+  final void Function(CanvasObject object) onObjectChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.grey[900],
+      width: 250,
+      child: object == null
+          ? Container()
+          : ListView(
+              padding: const EdgeInsets.all(12),
+              children: [
+                TextFormField(
+                  key: ValueKey(object?.id),
+                  initialValue: object?.color.value.toRadixString(16),
+                  decoration: InputDecoration(
+                    label: const Text('Fill'),
+                    prefix: Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        color: object?.color,
+                      ),
+                    ),
+                  ),
+                  onChanged: (value) {
+                    try {
+                      final color = Color(int.parse(value, radix: 16));
+                      print('color: $color');
+                      late final CanvasObject newObject;
+                      if (object is Circle) {
+                        newObject = (object as Circle).copyWith(color: color);
+                      } else if (object is Rectangle) {
+                        newObject =
+                            (object as Rectangle).copyWith(color: color);
+                      }
+                      onObjectChanged(newObject);
+                    } catch (e) {
+                      print(e);
+                      // ignore if not a valid color
+                    }
+                  },
+                ),
+              ],
+            ),
     );
   }
 }

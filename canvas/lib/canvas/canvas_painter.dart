@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 class CanvasPainter extends CustomPainter {
   final Map<String, UserCursor> userCursors;
   final Map<String, CanvasObject> canvasObjects;
+  final String? selectedObjectId;
 
   CanvasPainter({
     required this.userCursors,
     required this.canvasObjects,
+    required this.selectedObjectId,
   });
 
   @override
@@ -28,6 +30,38 @@ class CanvasPainter extends CustomPainter {
           Paint()..color = canvasObject.color,
         );
       }
+    }
+
+    // Draw blue rectangle around selected object
+    if (selectedObjectId != null) {
+      final selectedObject = canvasObjects[selectedObjectId!];
+      late final Offset topLeft;
+      late final Offset bottomRight;
+      if (selectedObject is Circle) {
+        topLeft = Offset(
+          selectedObject.center.dx - selectedObject.radius,
+          selectedObject.center.dy - selectedObject.radius,
+        );
+        bottomRight = Offset(
+          selectedObject.center.dx + selectedObject.radius,
+          selectedObject.center.dy + selectedObject.radius,
+        );
+      } else if (selectedObject is Rectangle) {
+        topLeft = selectedObject.topLeft;
+        bottomRight = selectedObject.bottomRight;
+      }
+      canvas.drawRect(
+        Rect.fromLTRB(
+          topLeft.dx,
+          topLeft.dy,
+          bottomRight.dx,
+          bottomRight.dy,
+        ),
+        Paint()
+          ..color = Colors.blue
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
     }
 
     // Draw the cursors
