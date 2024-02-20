@@ -85,7 +85,16 @@ class _CanvasPageState extends State<CanvasPage> {
               }
               setState(() {});
             })
-        .subscribe();
+        .onPresenceLeave((payload) {
+      final leftId = payload.leftPresences.first.payload['id'];
+      _userCursors.remove(leftId);
+    }).subscribe((status, error) {
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        _canvasChanel.track({
+          'id': _myId,
+        });
+      }
+    });
 
     final initialData = await supabase
         .from('canvas_objects')
@@ -212,22 +221,35 @@ class _CanvasPageState extends State<CanvasPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        leadingWidth: 300,
-        backgroundColor: Colors.grey[900],
-        leading: Row(
-          children: _DrawMode.values
-              .map((mode) => IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _currentMode = mode;
-                      });
-                    },
-                    icon: Icon(mode.iconData),
-                    color: _currentMode == mode ? Colors.green : Colors.white,
-                  ))
-              .toList(),
-        ),
-      ),
+          leadingWidth: 300,
+          backgroundColor: Colors.grey[900],
+          leading: Row(
+            children: _DrawMode.values
+                .map((mode) => IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _currentMode = mode;
+                        });
+                      },
+                      icon: Icon(mode.iconData),
+                      color: _currentMode == mode ? Colors.green : Colors.white,
+                    ))
+                .toList(),
+          ),
+          actions: [
+            ...[..._userCursors.values.map((e) => e.id), _myId]
+                .map(
+                  (id) => Align(
+                    widthFactor: 0.8,
+                    child: CircleAvatar(
+                      backgroundColor: RandomColor.getRandomFromId(id),
+                      child: Text(id.substring(0, 2)),
+                    ),
+                  ),
+                )
+                .toList(),
+            const SizedBox(width: 20),
+          ]),
       body: Row(
         children: [
           LeftPanel(
@@ -359,7 +381,6 @@ class RightPanel extends StatelessWidget {
                   onChanged: (value) {
                     try {
                       final color = Color(int.parse(value, radix: 16));
-                      print('color: $color');
                       late final CanvasObject newObject;
                       if (object is Circle) {
                         newObject = (object as Circle).copyWith(color: color);
@@ -369,7 +390,6 @@ class RightPanel extends StatelessWidget {
                       }
                       onObjectChanged(newObject);
                     } catch (e) {
-                      print(e);
                       // ignore if not a valid color
                     }
                   },
