@@ -12,6 +12,8 @@ class RightPanel extends StatelessWidget {
     required this.onObjectChanged,
   });
 
+  static const rightPanelWidth = 200.0;
+
   final CanvasObject? object;
   final void Function(CanvasObject object) onObjectChanged;
 
@@ -22,9 +24,9 @@ class RightPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.grey[900],
-      width: 250,
+      width: rightPanelWidth,
       child: object == null
-          ? Container()
+          ? const SizedBox.expand()
           : ListView(
               padding: const EdgeInsets.all(12),
               children: [
@@ -110,7 +112,7 @@ class RightPanel extends StatelessWidget {
                         overlayChildBuilder: (context) {
                           return Positioned(
                             top: 0,
-                            right: 250,
+                            right: rightPanelWidth,
                             child: Container(
                               color: Colors.grey[900],
                               padding: const EdgeInsets.all(8),

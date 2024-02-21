@@ -30,7 +30,7 @@ class LeftPanel extends StatelessWidget {
     return Material(
       color: Colors.grey[900],
       child: SizedBox(
-        width: 200,
+        width: 170,
         child: ListView.builder(
           itemCount: objects.length,
           itemBuilder: (context, index) {

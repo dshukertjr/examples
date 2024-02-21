@@ -45,7 +45,7 @@ abstract class SyncedObject {
 class UserCursor extends SyncedObject {
   static String type = 'cursor';
 
-  final Offset position;
+  final Offset? position;
   final Color color;
 
   UserCursor({
@@ -54,7 +54,9 @@ class UserCursor extends SyncedObject {
   }) : color = RandomColor.getRandomFromId(id);
 
   UserCursor.fromJson(Map<String, dynamic> json)
-      : position = Offset(json['position']['x'], json['position']['y']),
+      : position = json['position'] == null
+            ? null
+            : Offset(json['position']['x'], json['position']['y']),
         color = RandomColor.getRandomFromId(json['id']),
         super(id: json['id']);
 
@@ -63,10 +65,11 @@ class UserCursor extends SyncedObject {
     return {
       'object_type': type,
       'id': id,
-      'position': {
-        'x': position.dx,
-        'y': position.dy,
-      }
+      if (position != null)
+        'position': {
+          'x': position!.dx,
+          'y': position!.dy,
+        }
     };
   }
 }

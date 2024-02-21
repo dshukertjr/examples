@@ -88,10 +88,16 @@ class _CanvasPageState extends State<CanvasPage> {
                 final object = CanvasObject.fromJson(payload['object']);
                 _canvasObjects[object.id] = object;
               }
+
+              if (payload['delete_object'] != null) {
+                final objectId = payload['delete_object'] as String;
+                _canvasObjects.remove(objectId);
+              }
               setState(() {});
             })
         .onPresenceJoin((payload) {
       final joinedId = payload.newPresences.first.payload['id'] as String;
+      if (_myId == joinedId) return;
       if (!_userCursors.containsKey(joinedId)) {
         setState(() {
           _userCursors[joinedId] = UserCursor(
@@ -142,7 +148,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   /// Syncs the user's cursor position and the currently drawing object with
   /// other users.
-  Future<void> _syncCanvasObject(Offset cursorPosition) {
+  Future<void> _syncCanvasObject([Offset? cursorPosition]) {
     final myCursor = UserCursor(
       position: cursorPosition,
       id: _myId,
@@ -261,6 +267,12 @@ class _CanvasPageState extends State<CanvasPage> {
       _canvasObjects.remove(objectId);
     });
 
+    _canvasChanel
+        .sendBroadcastMessage(event: Constants.broadcastEventName, payload: {
+      'cursor': UserCursor(position: _cursorPosition, id: _myId).toJson(),
+      'delete_object': objectId,
+    });
+
     await supabase.from('canvas_objects').delete().eq('id', objectId);
   }
 
@@ -313,7 +325,7 @@ class _CanvasPageState extends State<CanvasPage> {
           Expanded(
             child: MouseRegion(
               onHover: (event) {
-                _syncCanvasObject(event.position);
+                _syncCanvasObject(event.localPosition);
               },
               child: GestureDetector(
                 onPanDown: _onPanDown,
@@ -345,6 +357,7 @@ class _CanvasPageState extends State<CanvasPage> {
                   setState(() {
                     _canvasObjects[object.id] = object;
                   });
+                  _syncCanvasObject();
                   await _saveCanvasObject(object);
                 },
               ),

@@ -50,6 +50,8 @@ class CanvasPainter extends CustomPainter {
         topLeft = selectedObject.topLeft;
         bottomRight = selectedObject.bottomRight;
       }
+
+      // Draw the blue stroke surrounding the selected object
       canvas.drawRect(
         Rect.fromLTRB(
           topLeft.dx,
@@ -62,19 +64,54 @@ class CanvasPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2,
       );
+
+      // Display the dimention of the selected object below it
+      const textStyle = TextStyle(
+        color: Colors.white,
+        fontSize: 12,
+      );
+      final textSpan = TextSpan(
+        text:
+            '${selectedObject!.width.round()} x ${selectedObject.height.round()}',
+        style: textStyle,
+      );
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout(
+        minWidth: 0,
+        maxWidth: double.infinity,
+      );
+      final textPositionX =
+          topLeft.dx + (selectedObject.width - textPainter.width) / 2;
+      final textPositionY = bottomRight.dy + 8;
+      final offset = Offset(textPositionX, textPositionY);
+      const paddingX = 4.0;
+      const paddingY = 2.0;
+      canvas.drawRect(
+          Rect.fromLTWH(
+              textPositionX - paddingX,
+              textPositionY - paddingY,
+              textPainter.width + paddingX * 2,
+              textPainter.height + paddingY * 2),
+          Paint()..color = Colors.blue);
+      textPainter.paint(canvas, offset);
     }
 
     // Draw the cursors
     for (final userCursor in userCursors.values) {
       final position = userCursor.position;
-      canvas.drawPath(
-          Path()
-            ..moveTo(position.dx, position.dy)
-            ..lineTo(position.dx + 14.29, position.dy + 44.84)
-            ..lineTo(position.dx + 20.35, position.dy + 25.93)
-            ..lineTo(position.dx + 39.85, position.dy + 24.51)
-            ..lineTo(position.dx, position.dy),
-          Paint()..color = userCursor.color);
+      if (position != null) {
+        canvas.drawPath(
+            Path()
+              ..moveTo(position.dx, position.dy)
+              ..lineTo(position.dx + 14.29, position.dy + 44.84)
+              ..lineTo(position.dx + 20.35, position.dy + 25.93)
+              ..lineTo(position.dx + 39.85, position.dy + 24.51)
+              ..lineTo(position.dx, position.dy),
+            Paint()..color = userCursor.color);
+      }
     }
   }
 
