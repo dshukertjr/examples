@@ -245,6 +245,10 @@ class _CanvasPageState extends State<CanvasPage> {
   void _onPanEnd(DragEndDetails _) async {
     _panStartPoint = null;
 
+    setState(() {
+      _currentMode = _DrawMode.pointer;
+    });
+
     final drawnObjectId = _selectedObjectId;
     // Save whatever was drawn to Supabase DB
     if (drawnObjectId == null) {
@@ -344,24 +348,20 @@ class _CanvasPageState extends State<CanvasPage> {
               ),
             ),
           ),
-          FocusScope(
-            child: Focus(
-              onFocusChange: (focus) {
-                setState(() {
-                  _isTextFieldFocused = focus;
-                });
-              },
-              child: RightPanel(
-                object: _canvasObjects[_selectedObjectId],
-                onObjectChanged: (object) async {
-                  setState(() {
-                    _canvasObjects[object.id] = object;
-                  });
-                  _syncCanvasObject();
-                  await _saveCanvasObject(object);
-                },
-              ),
-            ),
+          RightPanel(
+            object: _canvasObjects[_selectedObjectId],
+            onObjectChanged: (object) async {
+              setState(() {
+                _canvasObjects[object.id] = object;
+              });
+              _syncCanvasObject();
+              await _saveCanvasObject(object);
+            },
+            onFocusChange: (hasFocus) {
+              setState(() {
+                _isTextFieldFocused = hasFocus;
+              });
+            },
           ),
         ],
       ),
