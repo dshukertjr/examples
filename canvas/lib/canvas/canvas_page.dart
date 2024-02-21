@@ -101,7 +101,7 @@ class _CanvasPageState extends State<CanvasPage> {
       if (!_userCursors.containsKey(joinedId)) {
         setState(() {
           _userCursors[joinedId] = UserCursor(
-            position: const Offset(0, 0),
+            position: const Offset(-100, -100),
             id: joinedId,
           );
         });
