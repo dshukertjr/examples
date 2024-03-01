@@ -14,6 +14,8 @@ dependencies:
 
   google_generative_ai: ^0.2.2
   supabase_flutter: ^2.3.4
+  timeago: ^3.6.1
+  http: ^1.2.1
 
 dev_dependencies:
   flutter_test:
