@@ -1,7 +1,6 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
-interface Film {
+interface Movie {
   id: number
   title: string
   overview: string
@@ -9,48 +8,32 @@ interface Film {
   backdrop_path: string
 }
 
-interface SupabaseFilm extends Film {
+interface MovieWithEmbedding extends Movie {
   embedding: number[]
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Get the environment variables
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')
-  if (!supabaseUrl) {
-    return returnError({
-      message: 'Environment variable SUPABASE_URL is not set',
-    })
-  }
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (!supabaseServiceKey) {
-    return returnError({
-      message: 'Environment variable SUPABASE_SERVICE_ROLE_KEY is not set',
-    })
-  }
+  // const supabaseUrl = Deno.env.get('SUPABASE_URL') as string
+  // const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') as string
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
+
   /** API key for TMDB API */
   const tmdbApiKey = Deno.env.get('TMDB_API_KEY')
-  if (!tmdbApiKey) {
-    return returnError({
-      message: 'Environment variable TMDB_KEY is not set',
-    })
-  }
+
   /** API key for Open AI API */
   const openAiApiKey = Deno.env.get('OPEN_AI_API_KEY')
-  if (!openAiApiKey) {
-    return returnError({
-      message: 'Environment variable OPEN_AI_API_KEY is not set',
-    })
-  }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  const supabase = createClient(supabaseUrl, serviceKey)
 
   const year = new URLSearchParams(req.url.split('?')[1]).get('year')
 
   if (!year) {
-    return returnError({
-      message: 'year parameter was not set',
-    })
+    throw new Error('Year is required')
   }
+
+  const moviesWithEmbeddings: MovieWithEmbedding[] = []
 
   const searchParams = new URLSearchParams()
   searchParams.set('sort_by', 'popularity.desc')
@@ -78,16 +61,12 @@ serve(async (req) => {
 
   const tmdbStatus = tmdbResponse.status
   if (!(200 <= tmdbStatus && tmdbStatus <= 299)) {
-    return returnError({
-      message: 'Error retrieving data from tmdb API',
-    })
+    throw new Error('Error retrieving data from tmdb API')
   }
 
-  const films = tmdbJson.results as Film[]
+  const movies = tmdbJson.results as Movie[]
 
-  const filmsWithEmbeddings: SupabaseFilm[] = []
-
-  for (const film of films) {
+  for (const movie of movies) {
     const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
@@ -95,41 +74,39 @@ serve(async (req) => {
         Authorization: `Bearer ${openAiApiKey}`,
       },
       body: JSON.stringify({
-        input: film.overview,
-        model: 'text-embedding-ada-002',
+        input: movie.overview,
+        model: 'text-embedding-3-small',
       }),
     })
 
     const responseData = await response.json()
     if (responseData.error) {
-      return returnError({
-        message: `Error obtaining Open API embedding: ${responseData.error.message}`,
-      })
+      throw new Error(
+        `Error obtaining Open API embedding: ${responseData.error.message}`
+      )
     }
 
     const embedding = responseData.data[0].embedding
 
-    filmsWithEmbeddings.push({
-      id: film.id,
-      title: film.title,
-      overview: film.overview,
-      release_date: film.release_date,
-      backdrop_path: film.backdrop_path,
+    moviesWithEmbeddings.push({
+      id: movie.id,
+      title: movie.title,
+      overview: movie.overview,
+      release_date: movie.release_date,
+      backdrop_path: movie.backdrop_path,
       embedding,
     })
   }
 
-  const { error } = await supabase.from('films').upsert(filmsWithEmbeddings)
+  const { error } = await supabase.from('movies').upsert(moviesWithEmbeddings)
 
   if (error) {
-    return returnError({
-      message: error.message,
-    })
+    throw new Error(`Error inserting data into supabase: ${error.message}`)
   }
 
   return new Response(
     JSON.stringify({
-      message: `${filmsWithEmbeddings.length} films added for year ${year}`,
+      message: `Done!`,
     }),
     {
       status: 200,
@@ -137,21 +114,3 @@ serve(async (req) => {
     }
   )
 })
-
-function returnError({
-  message,
-  status = 400,
-}: {
-  message: string
-  status?: number
-}) {
-  return new Response(
-    JSON.stringify({
-      message,
-    }),
-    {
-      status: status,
-      headers: { 'Content-Type': 'application/json' },
-    }
-  )
-}

@@ -1,7 +1,6 @@
-import 'package:filmsearch/components/film_cell.dart';
+import 'package:filmsearch/components/movie_cell.dart';
 import 'package:filmsearch/main.dart';
-import 'package:filmsearch/models/film.dart';
-
+import 'package:filmsearch/models/movie.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -12,19 +11,19 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final filmsFuture = supabase
-      .from('films')
+  final moviesFuture = supabase
+      .from('movies')
       .select<List<Map<String, dynamic>>>()
-      .withConverter<List<Film>>((data) => data.map(Film.fromJson).toList());
+      .withConverter<List<Movie>>((data) => data.map(Movie.fromJson).toList());
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Films'),
+        title: const Text('Movies'),
       ),
       body: FutureBuilder(
-          future: filmsFuture,
+          future: moviesFuture,
           builder: (context, snapshot) {
             if (snapshot.hasError) {
               return Center(
@@ -34,13 +33,13 @@ class _HomePageState extends State<HomePage> {
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-            final films = snapshot.data!;
+            final movies = snapshot.data!;
             return ListView.builder(
               itemBuilder: (context, index) {
-                final film = films[index];
-                return FilmCell(film: film);
+                final movie = movies[index];
+                return MovieCell(movie: movie);
               },
-              itemCount: films.length,
+              itemCount: movies.length,
             );
           }),
     );

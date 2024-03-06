@@ -1,15 +1,15 @@
-import 'package:filmsearch/models/film.dart';
+import 'package:filmsearch/models/movie.dart';
 import 'package:filmsearch/pages/details_page.dart';
 import 'package:flutter/material.dart';
 
-class FilmCell extends StatelessWidget {
-  const FilmCell({
+class MovieCell extends StatelessWidget {
+  const MovieCell({
     super.key,
-    required this.film,
+    required this.movie,
     this.fontSize = 20,
     this.isHeroEnabled = true,
   });
-  final Film film;
+  final Movie movie;
   final double fontSize;
   final bool isHeroEnabled;
 
@@ -19,7 +19,7 @@ class FilmCell extends StatelessWidget {
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => DetailsPage(film: film),
+            builder: (context) => DetailsPage(movie: movie),
           ),
         );
       },
@@ -30,8 +30,8 @@ class FilmCell extends StatelessWidget {
             child: HeroMode(
               enabled: isHeroEnabled,
               child: Hero(
-                tag: film.imageUrl,
-                child: Image.network(film.imageUrl),
+                tag: movie.imageUrl,
+                child: Image.network(movie.imageUrl),
               ),
             ),
           ),
@@ -50,7 +50,7 @@ class FilmCell extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Text(
-                  film.title,
+                  movie.title,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: fontSize,

@@ -1,6 +1,6 @@
 # Content recommendation feature using Flutter, Open AI and Supabase
 
-A Flutter app demonstrating how semantic search powered by Open AI and Supabase vector database can be used to build a recommendation engine for movie films.
+A Flutter app demonstrating how semantic search powered by Open AI and Supabase vector database can be used to build a recommendation engine for movies.
 
 ![Flutter recommendation app](https://raw.githubusercontent.com/dshukertjr/examples/main/.github/images/movie-recommendation.jpg)
 

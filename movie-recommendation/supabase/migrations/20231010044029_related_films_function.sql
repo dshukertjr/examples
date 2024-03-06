@@ -1,14 +1,14 @@
 -- Set index on embedding column
-create index on films using hnsw (embedding vector_cosine_ops);
+create index on movies using hnsw (embedding vector_cosine_ops);
 
--- Create function to find related films
-create or replace function get_related_film(embedding vector(1536), film_id integer)
-returns setof films
+-- Create function to find related movies
+create or replace function get_related_movie(embedding vector(1536), movie_id integer)
+returns setof movies
 language sql
 as $$
     select *
-    from films
-    where id != film_id
-    order by films.embedding <=> get_related_film.embedding
+    from movies
+    where id != movie_id
+    order by movies.embedding <=> get_related_movie.embedding
     limit 6;
 $$ security invoker;

@@ -4,7 +4,7 @@ with
   schema extensions;
 
 -- Create table
-create table public.films (
+create table public.movies (
   id integer primary key,
   title text,
   overview text,
@@ -14,7 +14,8 @@ create table public.films (
 );
 
 -- Enable row level security
-alter table public.films enable row level security;
+alter table public.movies enable row level security;
 
--- Create policy to allow anyone to read the films table
-create policy "Fils are public." on public.films for select using (true);
+-- Create policy to allow anyone to read the movies table
+create policy "Fils are public." on public.movies for select using (true);
+ 

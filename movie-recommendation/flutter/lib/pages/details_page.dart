@@ -1,42 +1,42 @@
-import 'package:filmsearch/components/film_cell.dart';
+import 'package:filmsearch/components/movie_cell.dart';
 import 'package:filmsearch/main.dart';
-import 'package:filmsearch/models/film.dart';
+import 'package:filmsearch/models/movie.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class DetailsPage extends StatefulWidget {
-  const DetailsPage({super.key, required this.film});
+  const DetailsPage({super.key, required this.movie});
 
-  final Film film;
+  final Movie movie;
 
   @override
   State<DetailsPage> createState() => _DetailsPageState();
 }
 
 class _DetailsPageState extends State<DetailsPage> {
-  late final Future<List<Film>> relatedFilmsFuture;
+  late final Future<List<Movie>> relatedMoviesFuture;
 
   @override
   void initState() {
     super.initState();
-    relatedFilmsFuture = supabase.rpc('get_related_film', params: {
-      'embedding': widget.film.embedding,
-      'film_id': widget.film.id,
-    }).withConverter<List<Film>>((data) =>
-        List<Map<String, dynamic>>.from(data).map(Film.fromJson).toList());
+    relatedMoviesFuture = supabase.rpc('get_related_movie', params: {
+      'embedding': widget.movie.embedding,
+      'movie_id': widget.movie.id,
+    }).withConverter<List<Movie>>((data) =>
+        List<Map<String, dynamic>>.from(data).map(Movie.fromJson).toList());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.film.title),
+        title: Text(widget.movie.title),
       ),
       body: ListView(
         children: [
           Hero(
-            tag: widget.film.imageUrl,
-            child: Image.network(widget.film.imageUrl),
+            tag: widget.movie.imageUrl,
+            child: Image.network(widget.movie.imageUrl),
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -44,12 +44,12 @@ class _DetailsPageState extends State<DetailsPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  DateFormat.yMMMd().format(widget.film.releaseDate),
+                  DateFormat.yMMMd().format(widget.movie.releaseDate),
                   style: const TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  widget.film.overview,
+                  widget.movie.overview,
                   style: const TextStyle(fontSize: 16),
                 ),
                 const SizedBox(height: 24),
@@ -63,8 +63,8 @@ class _DetailsPageState extends State<DetailsPage> {
               ],
             ),
           ),
-          FutureBuilder<List<Film>>(
-              future: relatedFilmsFuture,
+          FutureBuilder<List<Movie>>(
+              future: relatedMoviesFuture,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(
@@ -74,19 +74,19 @@ class _DetailsPageState extends State<DetailsPage> {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final films = snapshot.data!;
+                final movies = snapshot.data!;
                 return Wrap(
-                  children: films
-                      .map((film) => InkWell(
+                  children: movies
+                      .map((movie) => InkWell(
                             onTap: () {
                               Navigator.of(context).push(MaterialPageRoute(
                                   builder: (context) =>
-                                      DetailsPage(film: film)));
+                                      DetailsPage(movie: movie)));
                             },
                             child: FractionallySizedBox(
                               widthFactor: 0.5,
-                              child: FilmCell(
-                                film: film,
+                              child: MovieCell(
+                                movie: movie,
                                 isHeroEnabled: false,
                                 fontSize: 16,
                               ),

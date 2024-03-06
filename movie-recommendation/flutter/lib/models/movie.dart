@@ -1,4 +1,4 @@
-class Film {
+class Movie {
   final int id;
   final String title;
   final String overview;
@@ -6,7 +6,7 @@ class Film {
   final DateTime releaseDate;
   final String embedding;
 
-  Film.fromJson(Map<String, dynamic> json)
+  Movie.fromJson(Map<String, dynamic> json)
       : id = json['id'] as int,
         title = json['title'] as String,
         overview = json['overview'] as String,
