@@ -3,7 +3,7 @@ class Movie {
   final String title;
   final String overview;
   final String imageUrl;
-  final DateTime releaseDate;
+  final String releaseDate;
   final String embedding;
 
   Movie.fromJson(Map<String, dynamic> json)
@@ -12,6 +12,6 @@ class Movie {
         overview = json['overview'] as String,
         imageUrl =
             'https://image.tmdb.org/t/p/w500${json['backdrop_path'] as String}',
-        releaseDate = DateTime.parse(json['release_date'] as String),
+        releaseDate = json['release_date'] as String,
         embedding = json['embedding'] as String;
 }

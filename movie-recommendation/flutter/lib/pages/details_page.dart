@@ -2,7 +2,6 @@ import 'package:filmsearch/components/movie_cell.dart';
 import 'package:filmsearch/main.dart';
 import 'package:filmsearch/models/movie.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 class DetailsPage extends StatefulWidget {
   const DetailsPage({super.key, required this.movie});
@@ -44,7 +43,7 @@ class _DetailsPageState extends State<DetailsPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  DateFormat.yMMMd().format(widget.movie.releaseDate),
+                  widget.movie.releaseDate,
                   style: const TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 8),

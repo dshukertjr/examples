@@ -33,8 +33,6 @@ Deno.serve(async (req) => {
     throw new Error('Year is required')
   }
 
-  const moviesWithEmbeddings: MovieWithEmbedding[] = []
-
   const searchParams = new URLSearchParams()
   searchParams.set('sort_by', 'popularity.desc')
   searchParams.set('page', '1')
@@ -65,6 +63,7 @@ Deno.serve(async (req) => {
   }
 
   const movies = tmdbJson.results as Movie[]
+  const moviesWithEmbeddings: MovieWithEmbedding[] = []
 
   for (const movie of movies) {
     const response = await fetch('https://api.openai.com/v1/embeddings', {
