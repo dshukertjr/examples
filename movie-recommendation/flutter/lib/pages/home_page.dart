@@ -13,7 +13,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final moviesFuture = supabase
       .from('movies')
-      .select<List<Map<String, dynamic>>>()
+      .select()
+      .order('release_date')
       .withConverter<List<Movie>>((data) => data.map(Movie.fromJson).toList());
 
   @override
@@ -26,6 +27,7 @@ class _HomePageState extends State<HomePage> {
           future: moviesFuture,
           builder: (context, snapshot) {
             if (snapshot.hasError) {
+              debugPrintStack(stackTrace: snapshot.stackTrace);
               return Center(
                 child: Text(snapshot.error.toString()),
               );

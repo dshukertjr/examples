@@ -4,9 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   await Supabase.initialize(
-    url: 'https://dqbvrguqoahxeqraccxo.supabase.co',
+    url: 'https://feuummkkcaubrfnzimgu.supabase.co',
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxYnZyZ3Vxb2FoeGVxcmFjY3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTY4NTQ0MDgsImV4cCI6MjAxMjQzMDQwOH0.8GyUQfmINFOrBRuN8OTbocb3U4T3LSp-1Z6C0W1LOJ0',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZldXVtbWtrY2F1YnJmbnppbWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk2MjM4ODksImV4cCI6MjAyNTE5OTg4OX0.zAvUyEXcwLBjaO3Fuy06aQ_z_N2ONedf99JoheAZ1hk',
   );
   runApp(const MyApp());
 }
@@ -18,14 +18,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const HomePage(),
+      home: HomePage(),
     );
   }
 }

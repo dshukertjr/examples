@@ -18,7 +18,7 @@ class _DetailsPageState extends State<DetailsPage> {
   @override
   void initState() {
     super.initState();
-    relatedMoviesFuture = supabase.rpc('get_related_movie', params: {
+    relatedMoviesFuture = supabase.rpc('get_related_movies', params: {
       'embedding': widget.movie.embedding,
       'movie_id': widget.movie.id,
     }).withConverter<List<Movie>>((data) =>
@@ -76,19 +76,12 @@ class _DetailsPageState extends State<DetailsPage> {
                 final movies = snapshot.data!;
                 return Wrap(
                   children: movies
-                      .map((movie) => InkWell(
-                            onTap: () {
-                              Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (context) =>
-                                      DetailsPage(movie: movie)));
-                            },
-                            child: FractionallySizedBox(
-                              widthFactor: 0.5,
-                              child: MovieCell(
-                                movie: movie,
-                                isHeroEnabled: false,
-                                fontSize: 16,
-                              ),
+                      .map((movie) => FractionallySizedBox(
+                            widthFactor: 0.5,
+                            child: MovieCell(
+                              movie: movie,
+                              isHeroEnabled: false,
+                              fontSize: 16,
                             ),
                           ))
                       .toList(),
