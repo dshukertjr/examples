@@ -87,6 +87,7 @@ class _CanvasPageState extends State<CanvasPage> {
               if (payload['object'] != null) {
                 final object = CanvasObject.fromJson(payload['object']);
                 _canvasObjects[object.id] = object;
+                _loadImage(object);
               }
 
               if (payload['delete_object'] != null) {
@@ -142,8 +143,24 @@ class _CanvasPageState extends State<CanvasPage> {
     for (final canvasObjectData in initialData) {
       final canvasObject = CanvasObject.fromJson(canvasObjectData['object']);
       _canvasObjects[canvasObject.id] = canvasObject;
+      if (canvasObject.imagePath != null) {
+        _loadImage(canvasObject);
+      }
     }
     setState(() {});
+  }
+
+  // Loads the image data so that they can be displayed on canvas
+  Future<void> _loadImage(CanvasObject object) async {
+    if (object.imagePath == null) return;
+    final imageByteList = await supabase.storage
+        .from(Constants.storageBucketName)
+        .download(object.imagePath!);
+
+    final image = await decodeImageFromList(imageByteList);
+    setState(() {
+      _canvasObjects[object.id] = object.copyWith(image: image);
+    });
   }
 
   /// Syncs the user's cursor position and the currently drawing object with
@@ -355,6 +372,9 @@ class _CanvasPageState extends State<CanvasPage> {
                 _canvasObjects[object.id] = object;
               });
               _syncCanvasObject();
+              if (object.imagePath != null) {
+                await _loadImage(object);
+              }
               await _saveCanvasObject(object);
             },
             onFocusChange: (hasFocus) {

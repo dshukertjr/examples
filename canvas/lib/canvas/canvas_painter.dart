@@ -16,19 +16,37 @@ class CanvasPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // Draw each canvas objects
     for (final canvasObject in canvasObjects.values) {
+      final paint = Paint();
+      paint.color = canvasObject.color;
+      final image = canvasObject.image;
+
+      if (image != null) {
+        canvas.saveLayer(canvasObject.boundingRect, paint);
+      }
+
       if (canvasObject is Circle) {
         canvas.drawCircle(
           canvasObject.center,
           canvasObject.radius,
-          Paint()..color = canvasObject.color,
+          paint,
         );
       } else if (canvasObject is Rectangle) {
         final topLeft = canvasObject.topLeft;
         final bottomRight = canvasObject.bottomRight;
         canvas.drawRect(
           Rect.fromLTRB(topLeft.dx, topLeft.dy, bottomRight.dx, bottomRight.dy),
-          Paint()..color = canvasObject.color,
+          paint,
         );
+      }
+      if (image != null) {
+        paintImage(
+          canvas: canvas,
+          rect: canvasObject.boundingRect,
+          image: image,
+          fit: BoxFit.cover,
+          blendMode: BlendMode.srcIn,
+        );
+        canvas.restore();
       }
     }
 

@@ -1,6 +1,10 @@
 import 'package:canvas/canvas/canvas_object.dart';
+import 'package:canvas/main.dart';
+import 'package:canvas/utils/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hsvcolor_picker/flutter_hsvcolor_picker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Side panel on the right.
 ///
@@ -39,6 +43,26 @@ class _RightPanelState extends State<RightPanel> {
       _heightController.text = widget.object?.height.round().toString() ?? '';
     }
     super.didUpdateWidget(oldWidget);
+  }
+
+  /// Uploads an image to the storage and updates the object's fill to the image.
+  Future<void> _uploadImage() async {
+    assert(widget.object != null,
+        'An object needs to be selected before uploading an image.');
+    final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (image == null) return;
+    final imageBytes = await image.readAsBytes();
+    final storagePath = 'objects/${widget.object!.id}.png';
+    await supabase.storage.from(Constants.storageBucketName).uploadBinary(
+          storagePath,
+          imageBytes,
+          fileOptions: const FileOptions(
+            contentType: 'image/png',
+            upsert: true,
+          ),
+        );
+
+    widget.onObjectChanged(widget.object!.copyWith(imagePath: storagePath));
   }
 
   @override
@@ -136,6 +160,11 @@ class _RightPanelState extends State<RightPanel> {
                     ),
                     const Divider(),
                     const Text('Fill'),
+                    ElevatedButton(
+                        onPressed: () {
+                          _uploadImage();
+                        },
+                        child: const Text('Upload Image')),
                     Row(
                       children: [
                         IconButton(

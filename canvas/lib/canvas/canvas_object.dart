@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:ui' as ui show Image;
 import 'dart:ui';
 
 import 'package:uuid/uuid.dart';
@@ -77,12 +78,16 @@ class UserCursor extends SyncedObject {
 /// Base model for any design objects displayed on the canvas.
 abstract class CanvasObject extends SyncedObject {
   final Color color;
+  final String? imagePath;
+  final ui.Image? image;
   final double width;
   final double height;
 
   CanvasObject({
     required super.id,
     required this.color,
+    required this.imagePath,
+    required this.image,
     required this.width,
     required this.height,
   });
@@ -98,13 +103,31 @@ abstract class CanvasObject extends SyncedObject {
   }
 
   /// Standard copyWith to create a new instance with updated values
-  CanvasObject copyWith();
+  CanvasObject copyWith({
+    String? imagePath,
+    ui.Image? image,
+  }) {
+    if (this is Circle) {
+      return copyWith(
+        imagePath: imagePath ?? this.imagePath,
+        image: image ?? this.image,
+      );
+    } else if (this is Rectangle) {
+      return copyWith(
+        imagePath: imagePath ?? this.imagePath,
+        image: image ?? this.image,
+      );
+    }
+    throw UnimplementedError('Unknown object type');
+  }
 
   /// Whether or not the object intersects with the given point.
   bool intersectsWith(Offset point);
 
   /// Moves the object to a new position
   CanvasObject move(Offset delta);
+
+  Rect get boundingRect;
 }
 
 /// Circle displayed on the canvas.
@@ -119,6 +142,8 @@ class Circle extends CanvasObject {
     required super.width,
     required super.height,
     required super.color,
+    required super.imagePath,
+    required super.image,
     required this.radius,
     required this.center,
   });
@@ -129,6 +154,8 @@ class Circle extends CanvasObject {
         super(
             id: json['id'],
             color: Color(json['color']),
+            imagePath: json['image_path'],
+            image: null,
             width: json['radius'] * 2,
             height: json['radius'] * 2);
 
@@ -138,6 +165,8 @@ class Circle extends CanvasObject {
         super(
           id: const Uuid().v4(),
           color: RandomColor.getRandom(),
+          imagePath: null,
+          image: null,
           width: 0,
           height: 0,
         );
@@ -148,6 +177,7 @@ class Circle extends CanvasObject {
       'object_type': type,
       'id': id,
       'color': color.value,
+      'image_path': imagePath,
       'center': {
         'x': center.dx,
         'y': center.dy,
@@ -161,12 +191,16 @@ class Circle extends CanvasObject {
     double? radius,
     Offset? center,
     Color? color,
+    String? imagePath,
+    ui.Image? image,
   }) {
     return Circle(
       radius: radius ?? this.radius,
       center: center ?? this.center,
       id: id,
       color: color ?? this.color,
+      imagePath: imagePath ?? this.imagePath,
+      image: image ?? this.image,
       width: (radius ?? this.radius) * 2,
       height: (radius ?? this.radius) * 2,
     );
@@ -182,6 +216,10 @@ class Circle extends CanvasObject {
   Circle move(Offset delta) {
     return copyWith(center: center + delta);
   }
+
+  @override
+  Rect get boundingRect =>
+      Rect.fromCenter(center: center, width: width, height: height);
 }
 
 /// Rectangle displayed on the canvas.
@@ -196,6 +234,8 @@ class Rectangle extends CanvasObject {
     required super.width,
     required super.height,
     required super.color,
+    required super.imagePath,
+    required super.image,
     required this.topLeft,
     required this.bottomRight,
   });
@@ -207,6 +247,8 @@ class Rectangle extends CanvasObject {
         super(
             id: json['id'],
             color: Color(json['color']),
+            imagePath: json['image_path'],
+            image: null,
             width: (json['top_left']['x'] - json['bottom_right']['x'] as double)
                 .abs(),
             height:
@@ -219,6 +261,8 @@ class Rectangle extends CanvasObject {
         bottomRight = startingPoint,
         super(
           color: RandomColor.getRandom(),
+          imagePath: null,
+          image: null,
           id: const Uuid().v4(),
           width: 0,
           height: 0,
@@ -230,6 +274,7 @@ class Rectangle extends CanvasObject {
       'object_type': type,
       'id': id,
       'color': color.value,
+      'image_path': imagePath,
       'top_left': {
         'x': topLeft.dx,
         'y': topLeft.dy,
@@ -246,12 +291,16 @@ class Rectangle extends CanvasObject {
     Offset? topLeft,
     Offset? bottomRight,
     Color? color,
+    String? imagePath,
+    ui.Image? image,
   }) {
     return Rectangle(
       id: id,
       topLeft: topLeft ?? this.topLeft,
       bottomRight: bottomRight ?? this.bottomRight,
       color: color ?? this.color,
+      imagePath: imagePath ?? this.imagePath,
+      image: image ?? this.image,
       width: ((topLeft ?? this.topLeft) - (bottomRight ?? this.bottomRight))
           .dx
           .abs(),
@@ -280,4 +329,7 @@ class Rectangle extends CanvasObject {
       bottomRight: bottomRight + delta,
     );
   }
+
+  @override
+  Rect get boundingRect => Rect.fromPoints(topLeft, bottomRight);
 }
