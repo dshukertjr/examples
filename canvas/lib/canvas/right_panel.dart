@@ -49,20 +49,30 @@ class _RightPanelState extends State<RightPanel> {
   Future<void> _uploadImage() async {
     assert(widget.object != null,
         'An object needs to be selected before uploading an image.');
-    final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final image = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1980,
+      maxHeight: 1980,
+    );
     if (image == null) return;
     final imageBytes = await image.readAsBytes();
-    final storagePath = 'objects/${widget.object!.id}.png';
+    final storagePath =
+        'objects/${widget.object!.id}${DateTime.now().millisecondsSinceEpoch}';
     await supabase.storage.from(Constants.storageBucketName).uploadBinary(
           storagePath,
           imageBytes,
-          fileOptions: const FileOptions(
-            contentType: 'image/png',
+          fileOptions: FileOptions(
+            contentType: image.mimeType,
             upsert: true,
           ),
         );
 
     widget.onObjectChanged(widget.object!.copyWith(imagePath: storagePath));
+    if (widget.object?.imagePath != null) {
+      await supabase.storage
+          .from(Constants.storageBucketName)
+          .remove([widget.object!.imagePath!]);
+    }
   }
 
   @override

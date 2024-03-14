@@ -17,11 +17,12 @@ class CanvasPainter extends CustomPainter {
     // Draw each canvas objects
     for (final canvasObject in canvasObjects.values) {
       final paint = Paint();
-      paint.color = canvasObject.color;
       final image = canvasObject.image;
 
       if (image != null) {
         canvas.saveLayer(canvasObject.boundingRect, paint);
+      } else {
+        paint.color = canvasObject.color;
       }
 
       if (canvasObject is Circle) {
