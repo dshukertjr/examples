@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' as ui show Image;
 
 import 'package:canvas/canvas/canvas_object.dart';
 import 'package:canvas/canvas/canvas_painter.dart';
@@ -62,6 +63,8 @@ class _CanvasPageState extends State<CanvasPage> {
   Offset _cursorPosition = const Offset(0, 0);
 
   bool _isTextFieldFocused = false;
+
+  final Map<String, ui.Image> _imageCache = {};
 
   @override
   void initState() {
@@ -152,12 +155,18 @@ class _CanvasPageState extends State<CanvasPage> {
 
   // Loads the image data so that they can be displayed on canvas
   Future<void> _loadImage(CanvasObject object) async {
+    final ui.Image image;
     if (object.imagePath == null) return;
-    final imageByteList = await supabase.storage
-        .from(Constants.storageBucketName)
-        .download(object.imagePath!);
+    if (_imageCache.containsKey(object.imagePath!)) {
+      image = _imageCache[object.imagePath!]!;
+    } else {
+      final imageByteList = await supabase.storage
+          .from(Constants.storageBucketName)
+          .download(object.imagePath!);
 
-    final image = await decodeImageFromList(imageByteList);
+      image = await decodeImageFromList(imageByteList);
+      _imageCache[object.imagePath!] = image;
+    }
     setState(() {
       _canvasObjects[object.id] = object.copyWith(image: image);
     });
