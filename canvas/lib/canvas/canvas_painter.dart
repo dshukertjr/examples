@@ -38,6 +38,20 @@ class CanvasPainter extends CustomPainter {
           Rect.fromLTRB(topLeft.dx, topLeft.dy, bottomRight.dx, bottomRight.dy),
           paint,
         );
+      } else if (canvasObject is Polygon) {
+        if (!canvasObject.isClosed) {
+          paint.strokeWidth = 2;
+          paint.style = PaintingStyle.stroke;
+        }
+        final points = canvasObject.points;
+        final path = Path()..moveTo(points.first.dx, points.first.dy);
+        for (final point in points.skip(1)) {
+          path.lineTo(point.dx, point.dy);
+        }
+        if (canvasObject.isClosed) {
+          path.close();
+        }
+        canvas.drawPath(path, paint);
       }
       if (image != null) {
         paintImage(
@@ -68,6 +82,19 @@ class CanvasPainter extends CustomPainter {
       } else if (selectedObject is Rectangle) {
         topLeft = selectedObject.topLeft;
         bottomRight = selectedObject.bottomRight;
+      } else if (selectedObject is Polygon) {
+        final xValues = selectedObject.points.map((point) => point.dx);
+        final yValues = selectedObject.points.map((point) => point.dy);
+        final minX = xValues
+            .reduce((value, element) => value < element ? value : element);
+        final minY = yValues
+            .reduce((value, element) => value < element ? value : element);
+        final maxX = xValues
+            .reduce((value, element) => value > element ? value : element);
+        final maxY = yValues
+            .reduce((value, element) => value > element ? value : element);
+        topLeft = Offset(minX, minY);
+        bottomRight = Offset(maxX, maxY);
       }
 
       // Draw the blue stroke surrounding the selected object

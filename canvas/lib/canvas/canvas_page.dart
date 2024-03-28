@@ -21,7 +21,10 @@ enum _DrawMode {
   circle(iconData: Icons.circle_outlined),
 
   /// Mode to draw rectangles
-  rectangle(iconData: Icons.rectangle_outlined);
+  rectangle(iconData: Icons.rectangle_outlined),
+
+  /// Mode to draw polygons using the pen tool
+  pen(iconData: Icons.edit_outlined);
 
   const _DrawMode({required this.iconData});
 
@@ -221,6 +224,25 @@ class _CanvasPageState extends State<CanvasPage> {
         _canvasObjects[newObject.id] = newObject;
         _selectedObjectId = newObject.id;
         break;
+      case _DrawMode.pen:
+        // The user is drawing a polygon if the selected object is an open polygon
+        final isDrawingPolygon = _selectedObjectId != null &&
+            _canvasObjects[_selectedObjectId!] is Polygon &&
+            !(_canvasObjects[_selectedObjectId!] as Polygon).isClosed;
+
+        print(isDrawingPolygon);
+
+        if (isDrawingPolygon) {
+          _canvasObjects[_selectedObjectId!] =
+              (_canvasObjects[_selectedObjectId!] as Polygon).addPoint(
+            details.localPosition,
+          );
+        } else {
+          final newObject = Polygon.createNew(details.localPosition);
+          _canvasObjects[newObject.id] = newObject;
+          _selectedObjectId = newObject.id;
+        }
+        break;
     }
     _cursorPosition = details.localPosition;
     _panStartPoint = details.localPosition;
@@ -259,6 +281,9 @@ class _CanvasPageState extends State<CanvasPage> {
           bottomRight: details.localPosition,
         );
         break;
+      case _DrawMode.pen:
+        // Do nothing on pan update for the pen tool
+        break;
     }
 
     _cursorPosition = details.localPosition;
@@ -271,16 +296,19 @@ class _CanvasPageState extends State<CanvasPage> {
   void _onPanEnd(DragEndDetails _) async {
     _panStartPoint = null;
 
-    setState(() {
-      _currentMode = _DrawMode.pointer;
-    });
-
     final drawnObjectId = _selectedObjectId;
     // Save whatever was drawn to Supabase DB
     if (drawnObjectId == null) {
       return;
     }
-    await _saveCanvasObject(_canvasObjects[drawnObjectId]!);
+
+    if (_currentMode != _DrawMode.pen) {
+      setState(() {
+        _currentMode = _DrawMode.pointer;
+      });
+
+      await _saveCanvasObject(_canvasObjects[drawnObjectId]!);
+    }
   }
 
   /// Saves a single canvas object to the database.
@@ -308,23 +336,46 @@ class _CanvasPageState extends State<CanvasPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDrawingPolygon = _selectedObjectId != null &&
+        _canvasObjects[_selectedObjectId] is Polygon &&
+        !(_canvasObjects[_selectedObjectId] as Polygon).isClosed;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
           leadingWidth: 300,
           backgroundColor: Colors.grey[900],
           leading: Row(
-            children: _DrawMode.values
-                .map((mode) => IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _currentMode = mode;
-                        });
-                      },
-                      icon: Icon(mode.iconData),
-                      color: _currentMode == mode ? Colors.green : Colors.white,
-                    ))
-                .toList(),
+            children: [
+              if (!isDrawingPolygon)
+                ..._DrawMode.values
+                    .map((mode) => IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _currentMode = mode;
+                            });
+                          },
+                          icon: Icon(mode.iconData),
+                          color: _currentMode == mode
+                              ? Colors.green
+                              : Colors.white,
+                        ))
+                    .toList(),
+
+              // Button to save the state of the polygon
+              if (isDrawingPolygon)
+                FilledButton(
+                  onPressed: () {
+                    setState(() {
+                      _canvasObjects[_selectedObjectId!] =
+                          (_canvasObjects[_selectedObjectId!] as Polygon)
+                              .close();
+                      _currentMode = _DrawMode.pointer;
+                    });
+                    _saveCanvasObject(_canvasObjects[_selectedObjectId]!);
+                  },
+                  child: const Text('Done'),
+                ),
+            ],
           ),
           // Displays the list of users currently drawing on the canvas
           actions: [

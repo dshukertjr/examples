@@ -97,6 +97,8 @@ abstract class CanvasObject extends SyncedObject {
       return Circle.fromJson(json);
     } else if (json['object_type'] == Rectangle.type) {
       return Rectangle.fromJson(json);
+    } else if (json['object_type'] == Polygon.type) {
+      return Polygon.fromJson(json);
     } else {
       throw UnimplementedError('Unknown object_type: ${json['object_type']}');
     }
@@ -332,4 +334,125 @@ class Rectangle extends CanvasObject {
 
   @override
   Rect get boundingRect => Rect.fromPoints(topLeft, bottomRight);
+}
+
+/// A polygon drawn using the pen tool.
+class Polygon extends CanvasObject {
+  static String type = 'polygon';
+
+  Polygon({
+    required this.points,
+    required this.isClosed,
+    required super.id,
+    required super.color,
+    required super.imagePath,
+    required super.image,
+    required super.width,
+    required super.height,
+  });
+
+  /// List of points that the pen tool has drawn
+  final List<Offset> points;
+
+  /// Whether the polygon is closed or not
+  final bool isClosed;
+
+  Polygon.fromJson(Map<String, dynamic> json)
+      : points =
+            json['points'].map<Offset>((e) => Offset(e['x'], e['y'])).toList(),
+        isClosed = true,
+        super(
+          id: json['id'],
+          color: Color(json['color']),
+          imagePath: json['image_path'],
+          image: null,
+          width: 0,
+          height: 0,
+        );
+
+  @override
+  double get width {
+    return points.map<double>((e) => e.dx).reduce(max) -
+        List.from(points).map<double>((e) => e.dx).reduce(min);
+  }
+
+  @override
+  double get height {
+    return points.map<double>((e) => e.dy).reduce(max) -
+        List.from(points).map<double>((e) => e.dy).reduce(min);
+  }
+
+  Polygon.createNew(Offset startingPoint)
+      : points = [startingPoint],
+        isClosed = false,
+        super(
+          id: const Uuid().v4(),
+          color: RandomColor.getRandom(),
+          imagePath: null,
+          image: null,
+          width: 0,
+          height: 0,
+        );
+
+  @override
+  Rect get boundingRect {
+    final minX = points.map((e) => e.dx).reduce(min);
+    final maxX = points.map((e) => e.dx).reduce(max);
+    final minY = points.map((e) => e.dy).reduce(min);
+    final maxY = points.map((e) => e.dy).reduce(max);
+    return Rect.fromPoints(Offset(minX, minY), Offset(maxX, maxY));
+  }
+
+  @override
+  bool intersectsWith(Offset point) {
+    final path = Path();
+    path.addPolygon(points, true);
+    return path.contains(point);
+  }
+
+  @override
+  CanvasObject move(Offset delta) {
+    return copyWith(
+      points: points.map((e) => e + delta).toList(),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'object_type': type,
+      'id': id,
+      'color': color.value,
+      'image_path': imagePath,
+      'points': points.map((e) => {'x': e.dx, 'y': e.dy}).toList(),
+    };
+  }
+
+  @override
+  Polygon copyWith({
+    List<Offset>? points,
+    bool? isClosed,
+    Color? color,
+    String? imagePath,
+    ui.Image? image,
+  }) {
+    return Polygon(
+      points: points ?? this.points,
+      isClosed: isClosed ?? this.isClosed,
+      id: id,
+      color: color ?? this.color,
+      imagePath: imagePath ?? this.imagePath,
+      image: image ?? this.image,
+      width: width,
+      height: height,
+    );
+  }
+
+  CanvasObject addPoint(Offset newPoint) {
+    return copyWith(points: [...points, newPoint]);
+  }
+
+  CanvasObject close() {
+    return copyWith(isClosed: true);
+  }
 }

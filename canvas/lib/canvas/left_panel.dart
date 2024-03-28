@@ -20,6 +20,8 @@ class LeftPanel extends StatelessWidget {
       return Icons.circle_outlined;
     } else if (object is Rectangle) {
       return Icons.rectangle_outlined;
+    } else if (object is Polygon) {
+      return Icons.edit;
     } else {
       throw UnimplementedError('Unknown object type: ${object.runtimeType}');
     }
