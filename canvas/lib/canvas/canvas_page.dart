@@ -313,10 +313,14 @@ class _CanvasPageState extends State<CanvasPage> {
 
   /// Saves a single canvas object to the database.
   Future<void> _saveCanvasObject(CanvasObject object) async {
-    await supabase.from('canvas_objects').upsert({
-      'id': object.id,
-      'object': object.toJson(),
-    });
+    try {
+      await supabase.from('canvas_objects').upsert({
+        'id': object.id,
+        'object': object.toJson(),
+      });
+    } catch (e) {
+      print(e);
+    }
   }
 
   Future<void> _deleteCanvasObject(String objectId) async {

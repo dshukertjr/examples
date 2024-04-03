@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:ui' as ui show Image;
 import 'dart:ui';
 
 import 'package:uuid/uuid.dart';
@@ -79,7 +78,7 @@ class UserCursor extends SyncedObject {
 abstract class CanvasObject extends SyncedObject {
   final Color color;
   final String? imagePath;
-  final ui.Image? image;
+  final Image? image;
   final double width;
   final double height;
 
@@ -107,7 +106,7 @@ abstract class CanvasObject extends SyncedObject {
   /// Standard copyWith to create a new instance with updated values
   CanvasObject copyWith({
     String? imagePath,
-    ui.Image? image,
+    Image? image,
   }) {
     if (this is Circle) {
       return copyWith(
@@ -179,7 +178,7 @@ class Circle extends CanvasObject {
       'object_type': type,
       'id': id,
       'color': color.value,
-      'image_path': imagePath,
+      if (imagePath != null) 'image_path': imagePath,
       'center': {
         'x': center.dx,
         'y': center.dy,
@@ -194,7 +193,7 @@ class Circle extends CanvasObject {
     Offset? center,
     Color? color,
     String? imagePath,
-    ui.Image? image,
+    Image? image,
   }) {
     return Circle(
       radius: radius ?? this.radius,
@@ -276,7 +275,7 @@ class Rectangle extends CanvasObject {
       'object_type': type,
       'id': id,
       'color': color.value,
-      'image_path': imagePath,
+      if (imagePath != null) 'image_path': imagePath,
       'top_left': {
         'x': topLeft.dx,
         'y': topLeft.dy,
@@ -294,7 +293,7 @@ class Rectangle extends CanvasObject {
     Offset? bottomRight,
     Color? color,
     String? imagePath,
-    ui.Image? image,
+    Image? image,
   }) {
     return Rectangle(
       id: id,
@@ -423,7 +422,7 @@ class Polygon extends CanvasObject {
       'object_type': type,
       'id': id,
       'color': color.value,
-      'image_path': imagePath,
+      if (imagePath != null) 'image_path': imagePath,
       'points': points.map((e) => {'x': e.dx, 'y': e.dy}).toList(),
     };
   }
@@ -434,7 +433,7 @@ class Polygon extends CanvasObject {
     bool? isClosed,
     Color? color,
     String? imagePath,
-    ui.Image? image,
+    Image? image,
   }) {
     return Polygon(
       points: points ?? this.points,
